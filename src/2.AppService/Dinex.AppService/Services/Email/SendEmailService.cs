@@ -1,8 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Net.Mail;
-using System.Net;
-
-namespace Dinex.AppService;
+﻿namespace Dinex.AppService;
 
 public class SendEmailService : ISendEmailService
 {

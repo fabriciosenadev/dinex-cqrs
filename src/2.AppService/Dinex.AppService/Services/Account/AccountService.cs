@@ -1,8 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using System.Security.Claims;
-using System.Text;
-
-namespace Dinex.AppService;
+﻿namespace Dinex.AppService;
 
 public class AccountService : IAccountService
 {
