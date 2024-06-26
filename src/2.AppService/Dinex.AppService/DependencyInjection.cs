@@ -6,6 +6,11 @@ public static class DependencyInjection
     {
         services.RegisterInfraDependencies();
 
+        #region service
+        services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<ISendEmailService, SendEmailService>();
+        #endregion
+
         return services;
     }
 }
