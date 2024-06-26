@@ -2,6 +2,8 @@
 
 public class DinexApiContext : DbContext
 {
+    public DbSet<User> Users { get; set; }
+
     public DinexApiContext(DbContextOptions<DinexApiContext> options) : base(options)
     {
 

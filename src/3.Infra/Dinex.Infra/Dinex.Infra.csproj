@@ -24,4 +24,8 @@
 	  <ProjectReference Include="..\..\4.Shared\Dinex.Core\Dinex.Core.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="DB\Migrations\" />
+	</ItemGroup>
+
 </Project>
