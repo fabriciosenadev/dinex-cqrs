@@ -4,7 +4,7 @@ builder.Services.AddApiConfig(builder.Configuration);
 
 builder.Services.AddSwaggerConfiguration();
 
-builder.Services.RegisterAllDepdencies();
+builder.Services.RegisterAllDepdencies(builder.Configuration);
 
 var app = builder.Build();
 

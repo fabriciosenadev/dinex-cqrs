@@ -2,9 +2,9 @@
 
 public static class DependecyInjectionConfig
 {
-    public static IServiceCollection RegisterAllDepdencies(this IServiceCollection services)
+    public static IServiceCollection RegisterAllDepdencies(this IServiceCollection services, IConfiguration configuration)
     {
-        services.RegisterBusinessDependecies();
+        services.RegisterBusinessDependecies(configuration);
 
         services.AddMediator();
 

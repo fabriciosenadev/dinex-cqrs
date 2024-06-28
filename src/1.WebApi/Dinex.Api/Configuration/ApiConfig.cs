@@ -18,9 +18,6 @@ public static class ApiConfig
         //builder.Services.AddDbContext<DinexBackendContext>(
         //    options => options.UseNpgsql(builder.Configuration.GetConnectionString("DinExDB"))
         //    );
-        services.AddDbContext<DinexApiContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DinexDB"))
-        );
 
         var appSettings = new AppSettings();
         new ConfigureFromConfigurationOptions<AppSettings>(configuration.GetSection("AppSettings")).Configure(appSettings);
