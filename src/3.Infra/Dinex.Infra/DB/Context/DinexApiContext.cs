@@ -3,6 +3,7 @@
 public class DinexApiContext : DbContext
 {
     public DbSet<User> Users { get; set; }
+    public DbSet<QueueIn> QueueIn { get; set; }
 
     public DinexApiContext(DbContextOptions<DinexApiContext> options) : base(options)
     {
