@@ -1,6 +1,7 @@
 ﻿global using System.Text.Json;
 
 global using Microsoft.AspNetCore.Cors;
+global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApiExplorer;
 global using Microsoft.EntityFrameworkCore;

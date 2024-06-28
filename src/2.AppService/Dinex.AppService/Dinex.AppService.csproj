@@ -17,11 +17,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Services\Email\Templates\" />
+	  <Folder Include="Events\UserEvents\" />
+	  <Folder Include="Templates\" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="Services\Email\Templates\activationAccount.html">
+	  <None Update="Templates\activationAccount.html">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>

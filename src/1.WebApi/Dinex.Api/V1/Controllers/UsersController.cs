@@ -20,7 +20,15 @@ public class UsersController : MainController
         return HandleResult(result);
     }
 
+    [HttpPost("activate")]
+    public async Task<ActionResult> Activate(ActivateUserCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return HandleResult(result);
+    }
+
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult> Get([FromQuery] GetUserQuery request)
     {
         var result = await _mediator.Send(request);
