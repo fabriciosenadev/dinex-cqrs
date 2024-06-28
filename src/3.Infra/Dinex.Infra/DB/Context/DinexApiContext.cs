@@ -5,6 +5,10 @@ public class DinexApiContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<QueueIn> QueueIn { get; set; }
 
+    #region
+    public DbSet<InvestmentHistory> InvestmentHistory { get; set; }
+    #endregion
+
     public DinexApiContext(DbContextOptions<DinexApiContext> options) : base(options)
     {
 
