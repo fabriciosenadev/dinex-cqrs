@@ -35,4 +35,10 @@ public class QueueIn : Entity
 
         return newQueueIn;
     }
+
+    public void UpdateByProcessing()
+    {
+        UpdatedAt = DateTime.UtcNow; 
+    }
+
 }

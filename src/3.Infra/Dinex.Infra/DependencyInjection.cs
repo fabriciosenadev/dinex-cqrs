@@ -13,6 +13,7 @@ public static class DependencyInjection
 
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddScoped<IQueueInRepository, QueueInRepository>();
+        services.AddScoped<IInvestmentHistoryRepository, InvestmentHistoryRepository>();
 
         return services;
     }

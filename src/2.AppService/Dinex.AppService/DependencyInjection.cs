@@ -11,6 +11,7 @@ public static class DependencyInjection
         #region service
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ISendEmailService, SendEmailService>();
+        services.AddScoped<IQueueService, QueueService>();
         #endregion
 
         return services;

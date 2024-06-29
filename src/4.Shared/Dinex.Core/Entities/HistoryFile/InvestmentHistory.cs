@@ -85,6 +85,12 @@ public class InvestmentHistory : Entity
         return historic;
     }
 
+    public void UpdateByProcessing()
+    {
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    #region private methods
     private static InvestmentTransactionType GetInvestmentActivityTypeByDescription(string? description)
     {
         var enumValues = Enum.GetValues(typeof(InvestmentTransactionType));
@@ -146,4 +152,5 @@ public class InvestmentHistory : Entity
 
         return result;
     }
+    #endregion
 }

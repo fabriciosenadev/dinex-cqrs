@@ -13,6 +13,7 @@ global using Swashbuckle.AspNetCore.SwaggerGen;
 global using MediatR;
 
 global using Dinex.Api;
+global using Dinex.Api.Controllers;
 global using Dinex.AppService;
 global using Dinex.Infra;
 global using Dinex.Core;

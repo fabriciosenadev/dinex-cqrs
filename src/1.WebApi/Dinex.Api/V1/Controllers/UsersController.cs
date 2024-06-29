@@ -1,6 +1,4 @@
-﻿using Dinex.Api.Controllers;
-
-namespace Dinex.Api.V1.Controllers;
+﻿namespace Dinex.Api.V1.Controllers;
 
 [ApiVersion("1.0")]
 [Route("v{version:apiVersion}/[controller]")]
