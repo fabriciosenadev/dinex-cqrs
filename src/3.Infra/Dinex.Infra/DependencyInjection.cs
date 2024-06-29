@@ -14,6 +14,11 @@ public static class DependencyInjection
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddScoped<IQueueInRepository, QueueInRepository>();
         services.AddScoped<IInvestmentHistoryRepository, InvestmentHistoryRepository>();
+        services.AddScoped<IAssetRepository, AssetRepository>();
+        services.AddScoped<IStockBrokerRepository, StockBrokerRepository>();
+        services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<IInvestmentTransactionRepository, InvestmentTransactionRepository>();
+        services.AddScoped<ITransactionHistoryRepository, TransactionHistoryRepository>();
 
         return services;
     }

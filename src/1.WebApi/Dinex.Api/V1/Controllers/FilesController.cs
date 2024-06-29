@@ -16,6 +16,7 @@ namespace Dinex.Api.V1.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult> UploadFile(UploadFileCommand command)
         {
             var result = await _mediator.Send(command);

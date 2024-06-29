@@ -3,6 +3,7 @@ using System;
 using Dinex.Infra;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dinex.Infra.DB.Migrations
 {
     [DbContext(typeof(DinexApiContext))]
-    partial class DinexApiContextModelSnapshot : ModelSnapshot
+    [Migration("20240629011706_AddEntityTransactionHistory")]
+    partial class AddEntityTransactionHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,50 +106,6 @@ namespace Dinex.Infra.DB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("InvestmentHistory");
-                });
-
-            modelBuilder.Entity("Dinex.Core.InvestmentTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Applicable")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("AssetId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AssetQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("AssetTransactionAmount")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal>("AssetUnitPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("StockBrokerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TransactionHistoryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("TransactionType")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("InvestmentTransactions");
                 });
 
             modelBuilder.Entity("Dinex.Core.QueueIn", b =>

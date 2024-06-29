@@ -22,6 +22,7 @@ internal class GetUserQueryHandler : IQueryHandler, IRequestHandler<GetUserQuery
 
         result.SetData(new UserDTO
         {
+            Id = user.Id,
             Email = user.Email,
             FullName = user.FullName,
         });
