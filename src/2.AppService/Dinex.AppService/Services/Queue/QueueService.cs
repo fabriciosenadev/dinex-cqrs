@@ -41,8 +41,8 @@ public class QueueService : IQueueService
                 return result;
             }
 
-            await _queueInRepository.AddAsync(queueIn);
             await _investmentHistoryRepository.AddRangeAsync(investmentHistoryList);
+            await _queueInRepository.AddAsync(queueIn);
 
             // enviar um evento para o comando de processamento
             var command = new ProcessQueueInCommand(userId);
@@ -105,6 +105,7 @@ public class QueueService : IQueueService
                         else if (columnType == typeof(DateTime))
                         {
                             var dateTime = Convert.ToDateTime(columnValue);
+                            dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
                             listOfColumns.Add(dateTime);
                         }
                     }

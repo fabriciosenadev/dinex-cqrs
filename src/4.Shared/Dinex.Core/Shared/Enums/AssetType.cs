@@ -3,5 +3,6 @@
 public enum AssetType
 {
     Stock,
-    Reit
+    Reit,
+    Bond
 }

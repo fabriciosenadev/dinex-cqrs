@@ -13,8 +13,14 @@ namespace Dinex.Core
         [Description("Cessão de Direitos - Solicitada")]
         AssignmentOfRightsRequested,
 
+        [Description("Resgate")]
+        BondsRedemption,
+
         [Description("Compra")]
         Buy,
+
+        [Description("COMPRA / VENDA")]
+        BuySell,
 
         [Description("Dividendo")]
         Dividend,

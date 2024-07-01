@@ -54,7 +54,7 @@ public class InvestmentHistory : Entity
         var historyFile = new InvestmentHistory(
             queueInId,
             applicable: GetApplicable(selectedApplicable),
-            date: DateTime.Parse(activityDate, culture),
+            date: DateTime.SpecifyKind(DateTime.Parse(activityDate, culture), DateTimeKind.Utc),
             transactionType: GetInvestmentActivityTypeByDescription(selectedActivity),
             product: selectedProduct,
             institution: selectedInstitution,
