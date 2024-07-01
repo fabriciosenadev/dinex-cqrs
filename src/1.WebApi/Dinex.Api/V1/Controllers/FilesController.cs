@@ -1,4 +1,5 @@
 ﻿
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +7,7 @@ namespace Dinex.Api.V1.Controllers
 {
     [ApiVersion("1.0")]
     [Route("v{version:apiVersion}/[controller]")]
+    [Authorize]
     public class FilesController : MainController
     {
         private readonly IMediator _mediator;
@@ -15,8 +17,7 @@ namespace Dinex.Api.V1.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost]
-        [Authorize]
+        [HttpPost]        
         public async Task<ActionResult> UploadFile(UploadFileCommand command)
         {
             var result = await _mediator.Send(command);

@@ -4,6 +4,7 @@ global using Microsoft.AspNetCore.Cors;
 global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApiExplorer;
+global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Options;
 global using Microsoft.OpenApi.Models;

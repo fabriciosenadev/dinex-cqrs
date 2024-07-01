@@ -11,6 +11,7 @@ public class UsersController : MainController
         _mediator = mediator;
     }
 
+    #region Anonymous endpoints
     [HttpPost]
     public async Task<ActionResult> Create(CreateUserCommand command)
     {
@@ -25,6 +26,16 @@ public class UsersController : MainController
         return HandleResult(result);
     }
 
+    [HttpPost("login")]
+    public async Task<ActionResult> Login(LoginUserCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return HandleResult(result);
+    }
+    #endregion
+
+
+    #region Authenticated endpoints
     [HttpGet]
     [Authorize]
     public async Task<ActionResult> Get([FromQuery] GetUserQuery request)
@@ -32,4 +43,5 @@ public class UsersController : MainController
         var result = await _mediator.Send(request);
         return HandleResult(result);
     }
+    #endregion
 }

@@ -1,4 +1,8 @@
-﻿namespace Dinex.Api;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+namespace Dinex.Api;
 
 public static class ApiConfig
 {
@@ -58,6 +62,22 @@ public static class ApiConfig
                 });
         });
 
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appSettings.Secret))
+            };
+        });
+        services.AddAuthorization();
+
+        services.AddAntiforgery();
+
         // configuration to work with ExcelDataReader --- see readme https://github.com/ExcelDataReader/ExcelDataReader
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
@@ -87,6 +107,7 @@ public static class ApiConfig
 
         //app.UseMiddleware<JwtMiddleware>();
         //app.UseMiddleware<ErrorHandlerMiddleware>();
+        app.UseMiddleware<AuthInfoMiddleware>();
 
         app.UseHttpsRedirection();
 
