@@ -49,20 +49,29 @@ public class AuthInfoMiddleware
 
         try
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
+            //var tokenHandler = new JwtSecurityTokenHandler();
+            //var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
 
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ClockSkew = TimeSpan.Zero
-            }, out SecurityToken validatedToken);
+            //tokenHandler.ValidateToken(token, new TokenValidationParameters
+            //{
+            //    ValidateIssuerSigningKey = true,
+            //    IssuerSigningKey = new SymmetricSecurityKey(key),
+            //    ValidateIssuer = false,
+            //    ValidateAudience = false,
+            //    ClockSkew = TimeSpan.Zero
+            //}, out SecurityToken validatedToken);
 
-            var jwtToken = (JwtSecurityToken)validatedToken;
-            var userId = Guid.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
+            //var jwtToken = (JwtSecurityToken)validatedToken;
+            //var userId = Guid.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
+
+            var jwtGenerator = new JwtGenerator().WithSecret(_appSettings.Secret);
+
+            if (jwtGenerator.IsTokenExpired(token))
+                return Guid.Empty;
+
+            var claims = jwtGenerator.GetClaimsFromToken(token);
+
+            var userId = Guid.Parse(claims.First(x => x.Type == "id").Value);
 
             return userId;
         }

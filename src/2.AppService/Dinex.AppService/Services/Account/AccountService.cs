@@ -3,22 +3,31 @@
 public class AccountService : IAccountService
 {
     private readonly AppSettings _appSettings;
-    public AccountService(IOptions<AppSettings> appSettings)
+    private readonly IJwtGenerator _jwtGenerator;
+    public AccountService(IOptions<AppSettings> appSettings, IJwtGenerator jwtGenerator)
     {
         _appSettings = appSettings.Value;
+        _jwtGenerator = jwtGenerator;
     }
     public string GenerateToken(User user)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
-        var tokenDescription = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[] { new Claim("id", user.Id.ToString()) }),
-            Expires = DateTime.UtcNow.AddDays(7), // expires in 7 days
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-        var token = tokenHandler.CreateToken(tokenDescription);
-        return tokenHandler.WriteToken(token);
+        List<KeyValuePair<string, string>> claims = [
+            new KeyValuePair<string, string>("id", user.Id.ToString())
+        ];
+
+        var token = _jwtGenerator.WithSecret(_appSettings.Secret)
+            .WithSigningAlgorithm(SecurityAlgorithms.HmacSha256Signature)
+            .WithClaims(claims)
+            .GenerateToken();
+
+        //var token = _jwtGenerator
+        //    .WithSecret(_appSettings.Secret)
+        //    .WithSigningAlgorithm(SecurityAlgorithms.HmacSha256Signature)
+        //    .GenerateToken();
+
+        //_jwtGenerator.IsTokenExpired(token);
+
+        return token;
     }
 
     public string GenerateCode(int codeLength, CodeType generationOption = CodeType.Default)
