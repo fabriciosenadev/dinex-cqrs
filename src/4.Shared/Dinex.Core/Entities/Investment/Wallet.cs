@@ -3,52 +3,63 @@
 public class Wallet : Entity
 {
     public Guid UserId { get; private set; }
-    public Guid AssetId { get; private set; }
-    public int AssetQuantity { get; private set; }
-    public decimal InvestedAmount { get; private set; }
-    public decimal AveragePrice { get; private set; }
+    public string Name { get; private set; } = null!;
+    public string? Description { get; private set; }
+    public string DefaultCurrency { get; private set; } = null!;
 
-    private Wallet(
-        Guid userId,
-        Guid assetId,
-        int assetQuantity,
-        decimal investedAmount,
-        decimal averagePrice,
-        DateTime createdAt,
-        DateTime? updatedAt,
-        DateTime? deletedAt) 
-    { 
-        UserId = userId;
-        AssetId = assetId;
-        AssetQuantity = assetQuantity;
-        InvestedAmount = investedAmount;
-        AveragePrice = averagePrice;
-        CreatedAt = createdAt;
-        UpdatedAt = updatedAt;
-        DeletedAt = deletedAt;
-    }
+    protected Wallet() { }
 
-    public static Wallet CreateAsset(Guid userId, Guid assetId, int assetQuantity, decimal investedAmount)
+    public static Wallet Create(Guid userId, string name, string defaultCurrency, string? description = null)
     {
-        var averagePrice = investedAmount / assetQuantity;
+        var wallet = new Wallet
+        {
+            UserId = userId,
+            Name = name,
+            DefaultCurrency = defaultCurrency,
+            Description = description,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
-        var wallet = new Wallet (
-            userId,
-            assetId, 
-            assetQuantity,
-            investedAmount,
-            averagePrice,
-            DateTime.UtcNow,
-            null,
-            null);
+        var contract = new Contract<Wallet>()
+            .Requires()
+            .IsNotEmpty(userId, nameof(UserId), "Usuário é obrigatório.")
+            .IsNotNullOrEmpty(name, nameof(Name), "Nome é obrigatório.")
+            .IsGreaterOrEqualsThan(name.Length, 3, nameof(Name), "Nome deve ter no mínimo 3 caracteres.")
+            .IsLowerOrEqualsThan(name.Length, 100, nameof(Name), "Nome deve ter no máximo 100 caracteres.")
+            .IsNotNullOrEmpty(defaultCurrency, nameof(DefaultCurrency), "Moeda padrão é obrigatória.")
+            .IsLowerOrEqualsThan(defaultCurrency.Length, 10, nameof(DefaultCurrency), "Moeda deve ter no máximo 10 caracteres.");
 
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            contract.IsGreaterOrEqualsThan(description.Length, 3, nameof(Description), "Descrição deve ter no mínimo 3 caracteres.");
+        }
+
+        wallet.AddNotifications(contract);
         return wallet;
     }
 
-    public void UpdateAsset(int assetQuantity, decimal investedAmount)
+    public void Update(string name, string defaultCurrency, string? description)
     {
-        AssetQuantity += assetQuantity;
-        InvestedAmount += investedAmount;
-        AveragePrice = InvestedAmount / AssetQuantity;
+        Name = name;
+        DefaultCurrency = defaultCurrency;
+        Description = description;
+        UpdatedAt = DateTime.UtcNow;
+
+        var contract = new Contract<Wallet>()
+            .Requires()
+            .IsNotNullOrEmpty(name, nameof(Name), "Nome é obrigatório.")
+            .IsGreaterOrEqualsThan(name.Length, 3, nameof(Name), "Nome deve ter no mínimo 3 caracteres.")
+            .IsLowerOrEqualsThan(name.Length, 100, nameof(Name), "Nome deve ter no máximo 100 caracteres.")
+            .IsNotNullOrEmpty(defaultCurrency, nameof(DefaultCurrency), "Moeda padrão é obrigatória.")
+            .IsLowerOrEqualsThan(defaultCurrency.Length, 10, nameof(DefaultCurrency), "Moeda deve ter no máximo 10 caracteres.");
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            contract.IsGreaterOrEqualsThan(description.Length, 3, nameof(Description), "Descrição deve ter no mínimo 3 caracteres.");
+        }
+
+        AddNotifications(contract);
     }
+
 }
