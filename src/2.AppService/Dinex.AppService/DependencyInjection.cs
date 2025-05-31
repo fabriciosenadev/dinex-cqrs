@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-
-namespace Dinex.AppService;
+﻿namespace Dinex.AppService;
 
 public static class DependencyInjection
 {
@@ -11,7 +9,10 @@ public static class DependencyInjection
         #region service
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ISendEmailService, SendEmailService>();
-        services.AddScoped<IQueueService, QueueService>();
+        #endregion
+
+        #region external service
+        services.AddScoped<IJwtGenerator, JwtGenerator>();
         #endregion
 
         return services;
