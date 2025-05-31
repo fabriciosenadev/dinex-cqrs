@@ -17,7 +17,7 @@ public class LoginUserCommandHandler : ICommandHandler, IRequestHandler<LoginUse
 		{
             var result = new OperationResult<AuthenticationUserDTO>();
 
-            var user = (await _userRepository.FindAsync(x => x.Email == request.Email)).FirstOrDefault();
+            var user = await _userRepository.GetByEmailAsync(request.Email);
             if (user is null)
             {
                 result.AddError("Usuário não encontrado").SetAsNotFound();

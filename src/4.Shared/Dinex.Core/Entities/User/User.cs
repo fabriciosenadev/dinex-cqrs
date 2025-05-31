@@ -8,7 +8,7 @@ public class User : Entity
     public UserStatus UserStatus { get; private set; }
     public string? ActivationCode { get; private set; }
 
-    private User(
+    public User(
         string fullName,
         string email,
         string password,

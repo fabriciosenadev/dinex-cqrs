@@ -1,6 +1,4 @@
-﻿using Dinex.Core;
-
-namespace Dinex.AppService;
+﻿namespace Dinex.AppService;
 
 public class CreateUserCommandHandler : ICommandHandler, IRequestHandler<CreateUserCommand, OperationResult<Guid>>
 {
@@ -21,8 +19,9 @@ public class CreateUserCommandHandler : ICommandHandler, IRequestHandler<CreateU
     public async Task<OperationResult<Guid>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
         var result = new OperationResult<Guid>();
-
-        if (_userRepository.FindAsync(user => user.Email == request.Email).Result.Any())
+        
+        var user = await _userRepository.GetByEmailAsync(request.Email);
+        if (user is not null)
         {
             result.AddError("Já existe um usuário com este E-mail");
             return result;
@@ -43,7 +42,7 @@ public class CreateUserCommandHandler : ICommandHandler, IRequestHandler<CreateU
 
         newUser.AssingActivationCode(activationCode);
 
-        await _userRepository.AddAsync(newUser);
+        await _userRepository.AddUserAsync(newUser);
 
         result.SetData(newUser.Id);
 

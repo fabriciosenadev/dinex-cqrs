@@ -22,7 +22,7 @@ public class ActivateUserCommandHandler : ICommandHandler, IRequestHandler<Activ
                 return result;
             }
 
-            var user = (await _userRepository.FindAsync(x => x.Email == request.Email)).FirstOrDefault();
+            var user = await _userRepository.GetByEmailAsync(request.Email);
             if (user is null)
             {
                 result.AddError("Usuário não encontrado").SetAsNotFound();
@@ -36,7 +36,7 @@ public class ActivateUserCommandHandler : ICommandHandler, IRequestHandler<Activ
             }
 
             user.Activate();
-            await _userRepository.UpdateAsync(user);
+            await _userRepository.UpdateUserAsync(user);
 
             return result;
         }

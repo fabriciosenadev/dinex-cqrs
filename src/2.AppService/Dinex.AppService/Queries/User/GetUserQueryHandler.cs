@@ -1,6 +1,6 @@
 ﻿namespace Dinex.AppService;
 
-internal class GetUserQueryHandler : IQueryHandler, IRequestHandler<GetUserQuery, OperationResult<UserDTO>>
+public class GetUserQueryHandler : IQueryHandler, IRequestHandler<GetUserQuery, OperationResult<UserDTO>>
 {
     private readonly IUserRepository _userRepository;
 
