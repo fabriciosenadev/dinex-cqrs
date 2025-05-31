@@ -2,33 +2,22 @@
 
 public class DinexApiContext : DbContext
 {
-    public DbSet<User> Users { get; set; }
-    public DbSet<QueueIn> QueueIn { get; set; }
+    public DinexApiContext(DbContextOptions<DinexApiContext> options)
+        : base(options) { }
 
-    #region investment
-    public DbSet<InvestmentHistory> InvestmentHistory { get; set; }
-    public DbSet<StockBroker> StockBrokers { get; set; }
-    public DbSet<Asset> Assets { get; set; }
-    public DbSet<Wallet> Wallets { get; set; }
-    #endregion
-
-    #region transactions
-    public DbSet<InvestmentTransaction> InvestmentTransactions { get; set; }
-    public DbSet<TransactionHistory> TransactionHistories { get; set; }
-    #endregion
-
-    public DinexApiContext(DbContextOptions<DinexApiContext> options) : base(options)
-    {
-
-    }
+    public DbSet<Asset> Assets => Set<Asset>();
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<Broker> Brokers => Set<Broker>();
+    public DbSet<Operation> Operations => Set<Operation>();
+    public DbSet<Position> Positions => Set<Position>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Ignore<Notifiable<Notification>>();
         modelBuilder.Ignore<Notification>();
 
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(DinexApiContext).Assembly);
-
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(DinexApiContext).Assembly);
     }
 }
