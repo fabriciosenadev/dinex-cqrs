@@ -25,15 +25,21 @@ public class WalletsController : MainController
         return HandleResult(result);
     }
 
-    [HttpGet("user/{userId}")]
+    [HttpGet("user")]
     [Authorize]
     [ProducesResponseType(typeof(IEnumerable<WalletDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAllByUser(Guid userId)
+    public async Task<IActionResult> GetAllByAuthenticatedUser()
     {
+        var userId = GetUserId(HttpContext); // vem do MainController
+
+        if (userId == Guid.Empty)
+            return Unauthorized("Invalid or missing user ID.");
+
         var result = await _mediator.Send(new GetAllWalletsByUserQuery(userId));
         return HandleResult(result);
     }
+
 
     [HttpPost]
     [Authorize]
