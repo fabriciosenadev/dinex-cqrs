@@ -46,11 +46,18 @@ public class WalletsController : MainController
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Create([FromBody] CreateWalletCommand command)
+    public async Task<IActionResult> Create([FromBody] CreateWalletCommand commandBody)
     {
+        var userId = GetUserId(HttpContext);
+        if (userId == Guid.Empty)
+            return Unauthorized("Invalid or missing user ID.");
+
+        var command = commandBody with { UserId = userId };
+
         var result = await _mediator.Send(command);
         return HandleResult(result);
     }
+
 
     [HttpPut("{id}")]
     [Authorize]
