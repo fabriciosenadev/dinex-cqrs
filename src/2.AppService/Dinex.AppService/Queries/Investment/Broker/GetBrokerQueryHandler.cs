@@ -23,7 +23,8 @@ public class GetBrokerQueryHandler : IQueryHandler, IRequestHandler<GetBrokerQue
         {
             Id = broker.Id,
             Name = broker.Name,
-            Cnpj = broker.Cnpj
+            Cnpj = broker.Cnpj,
+            Website = broker.Website
         });
 
         return result;

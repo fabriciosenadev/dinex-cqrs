@@ -21,7 +21,8 @@ public class GetAllBrokersQueryHandler : IQueryHandler, IRequestHandler<GetAllBr
             {
                 Id = broker.Id,
                 Name = broker.Name,
-                Cnpj = broker.Cnpj
+                Cnpj = broker.Cnpj,
+                Website = broker.Website
             });
 
         result.SetData(activeBrokers);
