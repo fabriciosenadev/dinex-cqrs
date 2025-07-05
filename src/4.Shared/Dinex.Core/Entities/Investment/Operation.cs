@@ -32,7 +32,7 @@ public class Operation : Entity
             Type = type,
             Quantity = quantity,
             UnitPrice = unitPrice,
-            ExecutedAt = executedAt,
+            ExecutedAt = DateTime.SpecifyKind(executedAt, DateTimeKind.Utc),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             TotalValue = Math.Round(quantity * unitPrice, 2)
@@ -60,7 +60,7 @@ public class Operation : Entity
         Type = type;
         Quantity = quantity;
         UnitPrice = unitPrice;
-        ExecutedAt = executedAt;
+        ExecutedAt = DateTime.SpecifyKind(executedAt, DateTimeKind.Utc);
         BrokerId = brokerId;
         TotalValue = Math.Round(quantity * unitPrice, 2);
         UpdatedAt = DateTime.UtcNow;
