@@ -29,9 +29,9 @@ public class AssetsController : MainController
     [Authorize]
     [ProducesResponseType(typeof(IEnumerable<AssetDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] GetAllAssetsQuery query)
     {
-        var result = await _mediator.Send(new GetAllAssetsQuery());
+        var result = await _mediator.Send(query);
         return HandleResult(result);
     }
 
