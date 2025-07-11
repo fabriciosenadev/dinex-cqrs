@@ -1,4 +1,6 @@
-﻿namespace Dinex.AppService;
+﻿
+
+namespace Dinex.AppService;
 public class ActivateUserCommand: IRequest<OperationResult>
 {
     public string Email { get; set; }

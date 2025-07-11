@@ -1,4 +1,6 @@
-﻿namespace Dinex.Api;
+﻿using MediatorEasy.Extensions;
+
+namespace Dinex.Api;
 
 public static class DependecyInjectionConfig
 {
@@ -21,10 +23,6 @@ public static class DependecyInjectionConfig
                 (typeof(IQueryHandler).IsAssignableFrom(type) || typeof(ICommandHandler).IsAssignableFrom(type))))
             .ToArray();
 
-        // Registre cada assembly explicitamente
-        foreach (var assembly in assemblies)
-        {
-            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
-        }
+        services.AddMediatorEasy(assemblies);
     }
 }

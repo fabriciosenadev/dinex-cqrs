@@ -12,7 +12,7 @@ global using Microsoft.Extensions.Options;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.IdentityModel.Tokens;
 
-global using MediatR;
+global using MediatorEasy.Core.Interfaces;
 
 global using ExcelDataReader;
 
