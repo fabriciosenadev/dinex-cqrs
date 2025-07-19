@@ -35,9 +35,21 @@ public class CreateOperationCommandHandler : ICommandHandler, IRequestHandler<Cr
 
         await _operationRepository.AddAsync(operation);
 
-        _positionService.RecalculatePositionAsync(request.WalletId, request.AssetId);
+        // Busca todas as operações após a inclusão
+        var operations = (await _operationRepository.GetByWalletAndAssetAsync(request.WalletId, request.AssetId))
+                         .OrderBy(o => o.ExecutedAt)
+                         .ToList();
+
+        // Verifica se a operação criada é a última
+        bool isLast = operations.Last().Id == operation.Id;
+
+        if (isLast)
+            await _positionService.RecalculatePositionAsync(request.WalletId, request.AssetId, operation); // incremental
+        else
+            await _positionService.RecalculatePositionAsync(request.WalletId, request.AssetId); // full
 
         result.SetData(operation.Id);
         return result;
     }
+
 }
