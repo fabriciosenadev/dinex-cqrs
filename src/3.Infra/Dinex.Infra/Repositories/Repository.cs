@@ -1,6 +1,6 @@
 ﻿namespace Dinex.Infra;
 
-public class Repository<T> : IRepository<T> where T : class //Entity, new()
+public class Repository<T> : IRepository<T> where T : Entity
 {
     private readonly DinexApiContext _context;
 
@@ -58,6 +58,48 @@ public class Repository<T> : IRepository<T> where T : class //Entity, new()
     {
         return await _context.Set<T>().ToListAsync();
     }
+
+    public async Task<PagedResult<T>> GetPagedAsync(
+        Expression<Func<T, bool>>? filter,
+        int page,
+        int pageSize,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
+    {
+        if (page < 1)
+            throw new ArgumentException("Page deve ser maior ou igual a 1.");
+
+        if (pageSize < 1)
+            throw new ArgumentException("PageSize deve ser maior ou igual a 1.");
+
+        var query = _context.Set<T>().AsQueryable();
+
+        if (filter != null)
+            query = query.Where(filter);
+
+        // Total de itens ANTES da paginação
+        var totalCount = await query.CountAsync();
+
+        // Ordenação padrão por CreatedAt se não for fornecida
+        if (orderBy != null)
+            query = orderBy(query);
+        else
+            query = query.OrderBy(x => x.CreatedAt);
+
+        // Paginação (lembrando que page começa em 1)
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<T>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
 
     //protected readonly DbSet<T> _dbSet;
     //protected readonly DinexApiContext _context;

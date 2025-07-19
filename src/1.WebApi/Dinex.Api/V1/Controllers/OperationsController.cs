@@ -27,11 +27,18 @@ public class OperationsController : MainController
 
     [HttpGet("wallet/{walletId}")]
     [Authorize]
-    [ProducesResponseType(typeof(IEnumerable<OperationDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<OperationDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAllByWallet(Guid walletId)
+    public async Task<IActionResult> GetAllByWallet(
+        Guid walletId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetAllOperationsByWalletQuery(walletId));
+        var result = await _mediator.Send(new GetAllOperationsByWalletQuery(walletId)
+        {
+            Page = page,
+            PageSize = pageSize
+        });
         return HandleResult(result);
     }
 

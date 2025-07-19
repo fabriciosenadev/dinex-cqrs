@@ -5,7 +5,7 @@ public class DinexApiContext : DbContext
     public DinexApiContext(DbContextOptions<DinexApiContext> options)
         : base(options) { }
 
-    public DbSet<Asset> Assets => Set<Asset>();
+    public DbSet<Operation> Assets => Set<Operation>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<Broker> Brokers => Set<Broker>();
     public DbSet<Operation> Operations => Set<Operation>();

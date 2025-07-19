@@ -46,5 +46,14 @@ public class OperationRepository : IOperationRepository
     {
         await _repository.SaveChangesAsync();
     }
+
+    public async Task<PagedResult<Operation>> GetPagedAsync(
+        Expression<Func<Operation, bool>>? filter,
+        int page,
+        int pageSize,
+        Func<IQueryable<Operation>, IOrderedQueryable<Operation>>? orderBy = null)
+    {
+        return await _repository.GetPagedAsync(filter, page, pageSize, orderBy);
+    }
 }
 

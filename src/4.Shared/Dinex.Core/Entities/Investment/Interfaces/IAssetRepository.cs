@@ -8,4 +8,9 @@ public interface IAssetRepository
     Task<IEnumerable<Asset>> GetAllAsync();
     Task<Asset?> GetByCodeAsync(string code);
     Task SaveChangesAsync();
+    Task<PagedResult<Asset>> GetPagedAsync(
+        Expression<Func<Asset, bool>>? filter,
+        int page,
+        int pageSize,
+        Func<IQueryable<Asset>, IOrderedQueryable<Asset>>? orderBy = null);
 }

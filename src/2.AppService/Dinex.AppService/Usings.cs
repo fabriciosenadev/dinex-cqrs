@@ -4,6 +4,7 @@ global using System.Net.Mail;
 global using System.Globalization;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
+global using System.Linq.Expressions;
 
 global using Microsoft.AspNetCore.Http;
 global using Microsoft.Extensions.Configuration;

@@ -1,6 +1,6 @@
 ﻿namespace Dinex.AppService;
 
-public class GetAllAssetsQuery : IRequest<OperationResult<IEnumerable<AssetDTO>>>
+public class GetAllAssetsQuery : IRequest<OperationResult<PagedResult<AssetDTO>>>
 {
     public string? Name { get; set; }
     public string? Code { get; set; }

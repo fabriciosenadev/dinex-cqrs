@@ -9,4 +9,9 @@ public interface IOperationRepository
     Task<IEnumerable<Operation>> GetByAssetAsync(Guid assetId);
     Task<IEnumerable<Operation>> GetByWalletAndAssetAsync(Guid walletId, Guid assetId);
     Task SaveChangesAsync();
+    Task<PagedResult<Operation>> GetPagedAsync(
+        Expression<Func<Operation, bool>>? filter,
+        int page,
+        int pageSize,
+        Func<IQueryable<Operation>, IOrderedQueryable<Operation>>? orderBy = null);
 }

@@ -39,5 +39,14 @@ public class AssetRepository : IAssetRepository
     {
         await _repository.SaveChangesAsync();
     }
+
+    public async Task<PagedResult<Asset>> GetPagedAsync(
+        Expression<Func<Asset, bool>>? filter,
+        int page,
+        int pageSize,
+        Func<IQueryable<Asset>, IOrderedQueryable<Asset>>? orderBy = null)
+    {
+        return await _repository.GetPagedAsync(filter, page, pageSize, orderBy);
+    }
 }
 
