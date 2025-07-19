@@ -5,10 +5,12 @@ namespace Dinex.AppService;
 public class UpdateOperationCommandHandler : ICommandHandler, IRequestHandler<UpdateOperationCommand, OperationResult<Guid>>
 {
     private readonly IOperationRepository _operationRepository;
+    private readonly IPositionService _positionService;
 
-    public UpdateOperationCommandHandler(IOperationRepository operationRepository)
+    public UpdateOperationCommandHandler(IOperationRepository operationRepository, IPositionService positionService)
     {
         _operationRepository = operationRepository;
+        _positionService = positionService;
     }
 
     public async Task<OperationResult<Guid>> Handle(UpdateOperationCommand request, CancellationToken cancellationToken)
@@ -47,8 +49,10 @@ public class UpdateOperationCommandHandler : ICommandHandler, IRequestHandler<Up
         }
 
         await _operationRepository.UpdateAsync(operation);
-        result.SetData(operation.Id);
 
+        _positionService.RecalculatePositionAsync(request.WalletId, request.AssetId);
+
+        result.SetData(operation.Id);
         return result;
     }
 }

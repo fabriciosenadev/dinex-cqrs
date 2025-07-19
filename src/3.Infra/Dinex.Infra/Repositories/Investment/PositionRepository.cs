@@ -19,6 +19,13 @@ public class PositionRepository : IPositionRepository
         await _repository.UpdateAsync(position);
     }
 
+    public async Task DeleteAsync(Guid walletId, Guid assetId)
+    {
+        var result = await GetByWalletAndAssetAsync(walletId, assetId);
+        if (result != null)
+            await _repository.DeleteAsync(result);
+    }
+
     public async Task<Position?> GetByIdAsync(Guid id)
     {
         return await _repository.GetByIdAsync(id);

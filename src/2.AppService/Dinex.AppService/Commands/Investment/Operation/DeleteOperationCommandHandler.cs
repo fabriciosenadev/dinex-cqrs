@@ -3,10 +3,12 @@
 public class DeleteOperationCommandHandler : ICommandHandler, IRequestHandler<DeleteOperationCommand, OperationResult<bool>>
 {
     private readonly IOperationRepository _operationRepository;
+    private readonly IPositionService _positionService;
 
-    public DeleteOperationCommandHandler(IOperationRepository operationRepository)
+    public DeleteOperationCommandHandler(IOperationRepository operationRepository, IPositionService positionService)
     {
         _operationRepository = operationRepository;
+        _positionService = positionService;
     }
 
     public async Task<OperationResult<bool>> Handle(DeleteOperationCommand request, CancellationToken cancellationToken)
@@ -23,8 +25,10 @@ public class DeleteOperationCommandHandler : ICommandHandler, IRequestHandler<De
         operation.MarkAsDeleted();
 
         await _operationRepository.UpdateAsync(operation);
-        result.SetData(true);
 
+        _positionService.RecalculatePositionAsync(operation.WalletId, operation.AssetId);
+
+        result.SetData(true);
         return result;
     }
 }
