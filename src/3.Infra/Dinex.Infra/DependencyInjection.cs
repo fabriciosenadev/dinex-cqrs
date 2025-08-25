@@ -15,7 +15,10 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
 
-        //services.AddScoped<IQueueInRepository, QueueInRepository>();
+        #region import statement
+        services.AddScoped<IImportJobRepository, ImportJobRepository>();
+        services.AddScoped<IB3StatementRowRepository, B3StatementRowRepository>();
+        #endregion
 
         #region investment
         services.AddScoped<IAssetRepository, AssetRepository>();
@@ -23,11 +26,6 @@ public static class DependencyInjection
         services.AddScoped<IOperationRepository, OperationRepository>();
         services.AddScoped<IPositionRepository, PositionRepository>();
         services.AddScoped<IWalletRepository, WalletRepository>();
-
-        //services.AddScoped<IStockBrokerRepository, StockBrokerRepository>();
-        //services.AddScoped<IInvestmentHistoryRepository, InvestmentHistoryRepository>();
-        //services.AddScoped<IInvestmentTransactionRepository, InvestmentTransactionRepository>();
-        //services.AddScoped<ITransactionHistoryRepository, TransactionHistoryRepository>();
         #endregion
 
         return services;

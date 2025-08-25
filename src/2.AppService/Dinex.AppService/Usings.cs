@@ -15,7 +15,8 @@ global using Microsoft.IdentityModel.Tokens;
 
 global using MediatorEasy.Core.Interfaces;
 
-global using ExcelDataReader;
+global using ClosedXML.Excel;
+global using Newtonsoft.Json;
 
 global using JwtEasy;
 

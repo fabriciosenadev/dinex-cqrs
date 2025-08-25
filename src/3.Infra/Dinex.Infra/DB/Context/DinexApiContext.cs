@@ -11,6 +11,8 @@ public class DinexApiContext : DbContext
     public DbSet<Operation> Operations => Set<Operation>();
     public DbSet<Position> Positions => Set<Position>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
+    public DbSet<B3StatementRow> B3StatementRows => Set<B3StatementRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

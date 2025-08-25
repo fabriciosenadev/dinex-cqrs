@@ -10,6 +10,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ISendEmailService, SendEmailService>();
         services.AddScoped<IPositionService, PositionService>();
+        services.AddScoped<IB3StatementParser, B3StatementParser>();
         #endregion
 
         #region external service
