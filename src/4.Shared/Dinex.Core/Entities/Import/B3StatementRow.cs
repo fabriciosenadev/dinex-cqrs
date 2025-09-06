@@ -37,7 +37,8 @@
             string? broker,
             string rawLineJson,
             B3StatementRowStatus status,
-            string? error)
+            string? error,
+            DateTime createdAt)
         {
             ImportJobId = importJobId;
             RowNumber = rowNumber;
@@ -53,6 +54,7 @@
             RawLineJson = rawLineJson;
             Status = status;
             Error = error;
+            CreatedAt = createdAt;
         }
 
         private static DateTime EnsureUtc(DateTime date)
@@ -97,7 +99,8 @@
                 broker,
                 rawLineJson,
                 B3StatementRowStatus.Novo,
-                error: null
+                error: null,
+                createdAt: DateTime.UtcNow
             );
 
             var errors = new List<string>();
@@ -165,7 +168,8 @@
                 broker: null,
                 rawLineJson: rawLineJson,
                 status: B3StatementRowStatus.Erro,
-                error: errorMessage
+                error: errorMessage,
+                createdAt: DateTime.UtcNow
             );
     }
 }

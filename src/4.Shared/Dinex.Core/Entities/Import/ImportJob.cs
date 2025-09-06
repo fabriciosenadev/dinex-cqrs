@@ -79,7 +79,8 @@ public class ImportJob : Entity
             TotalRows = totalRows,
             ErrorRows = errorRows,
             ProcessedAt = processedAt,
-            StatementRows = statementRows ?? new List<B3StatementRow>()
+            StatementRows = statementRows ?? new List<B3StatementRow>(),
+            CreatedAt = DateTime.UtcNow
         };
 
         return importJob;
@@ -100,6 +101,7 @@ public class ImportJob : Entity
         TotalRows = totalRows;
         ErrorRows = errorRows;
         ProcessedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void MarkAsFalha(string error, int totalRows, int errorRows)
@@ -109,6 +111,7 @@ public class ImportJob : Entity
         TotalRows = totalRows;
         ErrorRows = errorRows;
         ProcessedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void MarkAsFalha(Exception ex)
@@ -116,5 +119,6 @@ public class ImportJob : Entity
         Status = ImportJobStatus.Falha;
         Error = ex.Message ?? "Erro desconhecido ao importar.";
         ProcessedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
