@@ -22,5 +22,14 @@
             return HandleResult(result);
         }
 
+        /// <summary>Lista as importações realizadas</summary>
+        [HttpGet("jobs")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<ImportJobListItemDTO>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetJobs([FromQuery] string? status, [FromQuery] int? page, [FromQuery] int? pageSize)
+        {
+            var result = await _mediator.Send(new GetImportJobsQuery(status, page, pageSize));
+            return HandleResult(result);
+        }
     }
 }
