@@ -5,7 +5,7 @@ public class DinexApiContext : DbContext
     public DinexApiContext(DbContextOptions<DinexApiContext> options)
         : base(options) { }
 
-    public DbSet<Operation> Assets => Set<Operation>();
+    public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<Broker> Brokers => Set<Broker>();
     public DbSet<Operation> Operations => Set<Operation>();
@@ -13,6 +13,10 @@ public class DinexApiContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
     public DbSet<B3StatementRow> B3StatementRows => Set<B3StatementRow>();
+
+    #region Views (somente leitura)
+    public DbSet<B3ErrorFragmentView> B3ErrorFragments => Set<B3ErrorFragmentView>();
+    #endregion
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

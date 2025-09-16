@@ -3,11 +3,16 @@
 public class B3StatementRowRepository : IB3StatementRowRepository
 {
     private readonly IRepository<B3StatementRow> _repository;
+    private readonly IRepository<B3ErrorFragmentView> _viewRepository;
 
-    public B3StatementRowRepository(IRepository<B3StatementRow> repository)
+    public B3StatementRowRepository(
+        IRepository<B3StatementRow> repository,
+        IRepository<B3ErrorFragmentView> viewRepository)
     {
         _repository = repository;
+        _viewRepository = viewRepository;
     }
+
 
     public async Task<B3StatementRow?> GetByIdAsync(Guid id)
     {
@@ -75,5 +80,43 @@ public class B3StatementRowRepository : IB3StatementRowRepository
 
         // delega paginação pro repositório base → retorna Dinex.Core.PagedResult<B3StatementRow>
         return await _repository.GetPagedAsync(filter, page, pageSize, order);
+    }
+
+    public Task<PagedResult<B3ErrorFragmentView>> GetErrorFragmentsByJobAsync(
+        Guid importJobId, int page, int pageSize, string? search, string orderBy, bool desc, bool includeRaw)
+    {
+        var s = (search ?? string.Empty).Trim();
+        var sLower = s.ToLowerInvariant();
+        var hasSearch = !string.IsNullOrWhiteSpace(sLower);
+
+        Expression<Func<B3ErrorFragmentView, bool>> filter = x =>
+            x.ImportJobId == importJobId &&
+            (
+                !hasSearch
+                ? true
+                : includeRaw
+                    ? ((x.Error != null && x.Error.ToLower().Contains(sLower)) ||
+                       (x.RawLineJson != null && x.RawLineJson.ToLower().Contains(sLower)))
+                    : (x.Error != null && x.Error.ToLower().Contains(sLower))
+            );
+
+        Func<IQueryable<B3ErrorFragmentView>, IOrderedQueryable<B3ErrorFragmentView>> orderExpr = q =>
+        {
+            var key = (orderBy ?? "RowNumber").ToLowerInvariant();
+            return key switch
+            {
+                "createdat" => desc ? q.OrderByDescending(x => x.CreatedAt)
+                                     : q.OrderBy(x => x.CreatedAt),
+                "errorindex" => desc ? q.OrderByDescending(x => x.ErrorIndex)
+                                     : q.OrderBy(x => x.ErrorIndex),
+                "linenumber" => desc ? q.OrderByDescending(x => x.RowNumber)
+                                     : q.OrderBy(x => x.RowNumber),
+                _ => desc
+                    ? q.OrderByDescending(x => x.RowNumber).ThenByDescending(x => x.ErrorIndex)
+                    : q.OrderBy(x => x.RowNumber).ThenBy(x => x.ErrorIndex),
+            };
+        };
+
+        return _viewRepository.GetPagedAsync(filter, page, pageSize, orderExpr);
     }
 }

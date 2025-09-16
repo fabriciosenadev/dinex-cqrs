@@ -1,6 +1,6 @@
 ﻿namespace Dinex.Infra;
 
-public interface IRepository<T> where T: Entity
+public interface IRepository<T> where T: BaseEntity
 {
     Task AddAsync(T entity);
     Task UpdateAsync(T entity);

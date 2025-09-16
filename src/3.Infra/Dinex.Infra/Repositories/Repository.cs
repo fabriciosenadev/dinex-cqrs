@@ -1,6 +1,6 @@
 ﻿namespace Dinex.Infra;
 
-public class Repository<T> : IRepository<T> where T : Entity
+public class Repository<T> : IRepository<T> where T : BaseEntity
 {
     private readonly DinexApiContext _context;
 

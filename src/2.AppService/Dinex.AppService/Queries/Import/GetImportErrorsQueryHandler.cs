@@ -12,25 +12,18 @@ public sealed class GetImportErrorsQueryHandler
         GetImportErrorsQuery query, CancellationToken ct)
     {
         var result = new OperationResult<PagedResult<ImportErrorDTO>>();
+        if (!NormalizeAndValidate(query, result)) return result;
 
-        if (!NormalizeAndValidate(query, result))
-            return result;
-
-        var page = await _repo.GetErrorRowsByJobAsync(
-            query.ImportJobId,
-            query.Page,
-            query.PageSize,
-            query.Search,
-            query.OrderBy!,
-            query.Desc,
-            query.IncludeRaw);
+        var page = await _repo.GetErrorFragmentsByJobAsync(
+            query.ImportJobId, query.Page, query.PageSize,
+            query.Search, query.OrderBy!, query.Desc, query.IncludeRaw);
 
         var items = page.Items.Select(x => new ImportErrorDTO
         {
-            Id = x.Id,
+            Id = Guid.NewGuid(), // se quiser estável, uso helper abaixo
             ImportJobId = x.ImportJobId,
             LineNumber = x.RowNumber,
-            Error = x.Error ?? string.Empty,
+            Error = x.Error,
             RawLineJson = query.IncludeRaw ? x.RawLineJson : null,
             CreatedAt = x.CreatedAt
         });
