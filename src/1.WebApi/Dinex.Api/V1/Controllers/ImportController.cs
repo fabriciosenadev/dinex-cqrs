@@ -43,5 +43,17 @@
             var result = await _mediator.Send(query);
             return HandleResult(result);
         }
+
+        [HttpGet("{id:guid}/rows/{rowId:guid}")]
+        [Authorize]
+        [ProducesResponseType(typeof(ImportRowForEditDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetRowForEdit([FromRoute] Guid id, [FromRoute] Guid rowId)
+        {
+            var query = new GetImportRowForEditQuery { ImportJobId = id, Id = rowId };
+            var result = await _mediator.Send(query);
+            return HandleResult(result);
+        }
+
     }
 }

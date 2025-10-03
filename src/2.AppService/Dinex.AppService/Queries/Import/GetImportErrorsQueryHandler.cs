@@ -20,7 +20,7 @@ public sealed class GetImportErrorsQueryHandler
 
         var items = page.Items.Select(x => new ImportErrorDTO
         {
-            Id = Guid.NewGuid(), // se quiser estável, uso helper abaixo
+            Id = x.RowId,
             ImportJobId = x.ImportJobId,
             LineNumber = x.RowNumber,
             Error = x.Error,
