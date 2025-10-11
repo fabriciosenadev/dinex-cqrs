@@ -55,5 +55,17 @@
             return HandleResult(result);
         }
 
+        /// <summary>Exclui fisicamente um ImportJob e suas linhas associadas.</summary>
+        [HttpDelete("{id:guid}")]
+        [Authorize]
+        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteJob([FromRoute] Guid id, CancellationToken ct)
+        {
+            var result = await _mediator.Send(new DeleteImportJobCommand(id), ct);
+            return HandleResult(result); // retorna 200 OK com true em caso de sucesso
+        }
     }
 }

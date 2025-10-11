@@ -1,6 +1,6 @@
 ﻿namespace Dinex.AppService;
 
-public class UploadB3StatementCommandHandler : IRequestHandler<UploadB3StatementCommand, OperationResult<Guid>>
+public class UploadB3StatementCommandHandler : ICommandHandler, IRequestHandler<UploadB3StatementCommand, OperationResult<Guid>>
 {
     private readonly IImportJobRepository _importJobRepository;
     private readonly IB3StatementRowRepository _b3StatementRowRepository;

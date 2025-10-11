@@ -15,5 +15,6 @@ public interface IB3StatementRowRepository
         string orderBy,
         bool desc,
         bool includeRaw);
+    Task DeleteAsync(B3StatementRow row);
 }
 

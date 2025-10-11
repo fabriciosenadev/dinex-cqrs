@@ -13,5 +13,6 @@ public interface IImportJobRepository
     Task<IEnumerable<ImportJob>> GetByStatusAsync(ImportJobStatus status);
     Task<IEnumerable<ImportJob>> GetByUserAsync(string userId);
     Task<IEnumerable<ImportJob>> GetRecentJobsAsync(int count);
+    Task DeleteAsync(ImportJob job);
 }
 

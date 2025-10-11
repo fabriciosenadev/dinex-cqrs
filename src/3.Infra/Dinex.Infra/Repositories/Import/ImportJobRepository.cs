@@ -60,4 +60,6 @@ public class ImportJobRepository : IImportJobRepository
         var allJobs = await _repository.GetAllAsync();
         return allJobs.OrderByDescending(j => j.UploadedAt).Take(count);
     }
+
+    public Task DeleteAsync(ImportJob job) => _repository.DeleteAsync(job);
 }

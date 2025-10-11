@@ -75,4 +75,6 @@ public class B3StatementRowRepository : IB3StatementRowRepository
 
         return _viewRepository.GetPagedAsync(filter, page, pageSize, orderExpr);
     }
+
+    public Task DeleteAsync(B3StatementRow row) => _repository.DeleteAsync(row);
 }
