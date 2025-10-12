@@ -54,7 +54,9 @@ public class GetImportJobsQueryHandler :
                 Status = x.Status.ToString(),
                 TotalRows = x.TotalRows,
                 ImportedRows = imported,
-                ErrorsCount = errors
+                ErrorsCount = errors,
+                PeriodStartUtc = x.PeriodStartUtc.GetValueOrDefault(),
+                PeriodEndUtc = x.PeriodEndUtc.GetValueOrDefault()
             };
         });
 

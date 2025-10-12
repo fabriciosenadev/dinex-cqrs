@@ -30,7 +30,7 @@ public class UploadB3StatementCommandHandler : ICommandHandler, IRequestHandler<
             importJob = ImportJob.Create(
                 fileName: request.File.FileName,
                 uploadedAt: DateTime.UtcNow,
-                uploadedBy: request.UserId,
+                uploadedBy: request.UserId.ToString(),
                 status: ImportJobStatus.Pendente
             );
         }
@@ -58,7 +58,8 @@ public class UploadB3StatementCommandHandler : ICommandHandler, IRequestHandler<
             if (statementRows.Any())
                 await _b3StatementRowRepository.AddRangeAsync(statementRows);
 
-            // Aqui, use métodos da entidade!
+            importJob.SetPeriodFromRows(statementRows);
+
             if (errorRows > 0)
             {
                 importJob.MarkAsFalha(

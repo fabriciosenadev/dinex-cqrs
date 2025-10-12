@@ -1,4 +1,6 @@
-﻿namespace Dinex.Core
+﻿using System.Globalization;
+
+namespace Dinex.Core
 {
     public class B3StatementRow : Entity
     {
@@ -71,6 +73,85 @@
             return DateTime.SpecifyKind(date, DateTimeKind.Utc);
         }
 
+        private static readonly HashSet<string> MovimentosSemPrecoObrigatorio = new(StringComparer.OrdinalIgnoreCase)
+        {
+            // --- Bonificações e Desdobramentos ---
+            "Bonificação em Ativos",
+            "Bonificação em Ações",
+            "Desdobramento",
+            "Grupamento",
+            "Ajuste de Fração",
+            "Ajuste de Frações de Ações",
+
+            // --- Transferências e Movimentações Internas ---
+            "Transferência – Liquidação",
+            "Transferência – Liquidação de Ativos",
+            "Transferência – Custódia",
+            "Transferência de Custódia",
+            "Transferência de Ativos entre Contas",
+            "Transferência entre Contas Próprias",
+            "Transferência para Terceiros",
+
+            // --- Reorganizações Societárias ---
+            "Incorporação",
+            "Incorporação de Ações",
+            "Cisão",
+            "Cisão Parcial",
+            "Fusão",
+            "Reorganização Societária",
+            "Conversão de Ações",
+            "Conversão de Títulos em Ações",
+            "Conversão de Debêntures em Ações",
+            "Consolidação de Ações",
+            "Reclassificação de Ações",
+
+            // --- Subscrições e Direitos ---
+            "Subscrição Gratuita",
+            "Subscrição – Direito Não Exercido",
+            "Subscrição – Conversão Automática",
+            "Exercício de Direito de Subscrição (sem custo)",
+            "Distribuição de Direitos",
+            "Conversão de Direitos em Ações",
+
+            // --- Ajustes e Regularizações ---
+            "Reajuste de Posição",
+            "Ajuste de Posição",
+            "Ajuste Contábil",
+            "Ajuste de Quantidade",
+            "Regularização de Posição",
+            "Retificação de Lançamento",
+            "Correção de Evento Corporativo",
+
+            // --- Integralizações e Aportes ---
+            "Integralização de Capital",
+            "Aporte de Capital",
+            "Integralização de Ações",
+            "Integralização de Quotas",
+
+            // --- Outras Situações Especiais ---
+            "Conversão de Moeda",
+            "Conversão de Units",
+            "Conversão de Classes de Ações",
+            "Conversão de ADR em Ações",
+            "Conversão de Ações em ADR",
+            "Cancelamento de Units",
+            "Cancelamento de Ações (sem custo)",
+            "Distribuição de Ativos",
+            "Distribuição de Bônus",
+            "Distribuição de Ativos sem Contraprestação",
+            "Evento de Reestruturação",
+            "Evento sem Movimento Financeiro",
+        };
+
+
+        private static bool TryParseDatePtBr(string value, out DateTime date)
+        {
+            var styles = DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;
+            var formats = new[] { "dd/MM/yyyy", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ssZ" };
+            return DateTime.TryParseExact(value, formats, new CultureInfo("pt-BR"), styles, out date)
+                   || DateTime.TryParse(value, new CultureInfo("pt-BR"), styles, out date);
+        }
+
         public static B3StatementRow Create(
             Guid importJobId,
             int rowNumber,
@@ -105,39 +186,67 @@
 
             var errors = new List<string>();
 
+            // Ativo
             if (string.IsNullOrWhiteSpace(asset))
-                errors.Add("Campo Asset (Ativo) obrigatório e não informado.");
+                errors.Add("Campo 'Ativo' é obrigatório e não foi informado.");
 
+            // Movimento
             if (string.IsNullOrWhiteSpace(movement))
-                errors.Add("Campo Movement (evento do ativo) obrigatório e não informado.");
+                errors.Add("Campo 'Movimentação' é obrigatório e não foi informado.");
 
+            // Data
             if (row.Date == default)
-                errors.Add("Campo Data obrigatório e não informado ou inválido.");
+                errors.Add("Campo 'Data' é obrigatório e está ausente ou inválido.");
 
-            if (!string.IsNullOrWhiteSpace(dueDate) && !DateTime.TryParse(dueDate, out _))
-                errors.Add("Campo DueDate informado, porém não é uma data válida.");
+            // Vencimento (opcional, mas se vier deve ser data válida)
+            if (!string.IsNullOrWhiteSpace(dueDate) && !TryParseDatePtBr(dueDate!, out _))
+                errors.Add("Campo 'Vencimento' foi informado, porém não é uma data válida.");
 
+            // Quantidade
             if (quantity is null || quantity <= 0)
-                errors.Add("Campo Quantity obrigatório e deve ser maior que zero.");
+                errors.Add("Campo 'Quantidade' é obrigatório e deve ser maior que zero.");
 
-            if (unitPrice is null || unitPrice < 0)
-                errors.Add("Campo UnitPrice obrigatório e não pode ser negativo.");
+            // Regras de preço/valor dependentes do movimento
+            var exigePreco = !string.IsNullOrWhiteSpace(movement)
+                             && !MovimentosSemPrecoObrigatorio.Contains(movement);
 
-            if (totalValue is null || totalValue < 0)
-                errors.Add("Campo TotalValue obrigatório e não pode ser negativo.");
-
-            if (quantity is not null && unitPrice is not null && totalValue is not null)
+            if (exigePreco)
             {
-                var expected = Math.Round(quantity.Value * unitPrice.Value, 2);
-                if (Math.Abs(expected - totalValue.Value) > 0.03M)
-                    errors.Add("Campo TotalValue não bate com Quantity x UnitPrice.");
+                // OperationType faz sentido aqui (compra/venda, etc.)
+                if (row.OperationType is null)
+                    errors.Add("Campo 'Tipo de Operação' é obrigatório para esta movimentação.");
+
+                if (unitPrice is null || unitPrice < 0)
+                    errors.Add("Campo 'Preço Unitário' é obrigatório e não pode ser negativo.");
+
+                if (totalValue is null || totalValue < 0)
+                    errors.Add("Campo 'Valor Total' é obrigatório e não pode ser negativo.");
+
+                // Conferência aritmética com tolerância
+                if (quantity is not null && unitPrice is not null && totalValue is not null)
+                {
+                    var esperado = Math.Round(quantity.Value * unitPrice.Value, 2, MidpointRounding.AwayFromZero);
+                    var diff = Math.Abs(esperado - totalValue.Value);
+                    if (diff > 0.05m)
+                        errors.Add("O 'Valor Total' não confere com 'Quantidade × Preço Unitário' (diferença acima da tolerância de R$ 0,05).");
+                }
+            }
+            else
+            {
+                // Para movimentos sem preço obrigatório, se vierem valores negativos, ainda assim é erro
+                if (unitPrice is not null && unitPrice < 0)
+                    errors.Add("Campo 'Preço Unitário' não pode ser negativo.");
+                if (totalValue is not null && totalValue < 0)
+                    errors.Add("Campo 'Valor Total' não pode ser negativo.");
             }
 
+            // Corretora
             if (string.IsNullOrWhiteSpace(broker))
-                errors.Add("Campo Broker obrigatório e não informado.");
+                errors.Add("Campo 'Corretora' é obrigatório e não foi informado.");
 
+            // Linha bruta
             if (string.IsNullOrWhiteSpace(rawLineJson))
-                errors.Add("Campo RawLineJson obrigatório para rastreio.");
+                errors.Add("Campo 'RawLineJson' é obrigatório para rastreabilidade.");
 
             if (errors.Any())
             {
@@ -168,7 +277,7 @@
                 broker: null,
                 rawLineJson: rawLineJson,
                 status: B3StatementRowStatus.Erro,
-                error: errorMessage,
+                error: string.IsNullOrWhiteSpace(errorMessage) ? "Erro não especificado durante a validação da linha." : errorMessage,
                 createdAt: DateTime.UtcNow
             );
     }

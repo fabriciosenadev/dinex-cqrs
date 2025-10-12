@@ -18,6 +18,10 @@
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UploadB3Statement([FromForm] UploadB3StatementCommand command)
         {
+            var userId = GetUserId(HttpContext);
+            if (userId == Guid.Empty)
+                return Unauthorized("Invalid or missing user ID.");
+            command.UserId = userId;
             var result = await _mediator.Send(command);
             return HandleResult(result);
         }

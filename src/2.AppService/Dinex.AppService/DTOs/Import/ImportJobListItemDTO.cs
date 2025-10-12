@@ -9,4 +9,6 @@ public class ImportJobListItemDTO
     public int? TotalRows { get; set; }
     public int ImportedRows { get; set; }
     public int ErrorsCount { get; set; }
+    public DateTime PeriodStartUtc { get; set; }
+    public DateTime PeriodEndUtc { get; set; }
 }
