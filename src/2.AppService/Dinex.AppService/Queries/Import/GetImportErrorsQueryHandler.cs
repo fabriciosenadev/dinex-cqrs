@@ -4,9 +4,9 @@ public sealed class GetImportErrorsQueryHandler
     : IRequestHandler<GetImportErrorsQuery, OperationResult<PagedResult<ImportErrorDTO>>>,
       IQueryHandler
 {
-    private readonly IB3StatementRowRepository _repo;
+    private readonly IB3ErrorFragmentQueryRepository _repo;
 
-    public GetImportErrorsQueryHandler(IB3StatementRowRepository repo) => _repo = repo;
+    public GetImportErrorsQueryHandler(IB3ErrorFragmentQueryRepository repo) => _repo = repo;
 
     public async Task<OperationResult<PagedResult<ImportErrorDTO>>> Handle(
         GetImportErrorsQuery query, CancellationToken ct)

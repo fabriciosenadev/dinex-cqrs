@@ -14,11 +14,23 @@ public class B3StatementRowConfiguration : IEntityTypeConfiguration<B3StatementR
             .HasMaxLength(100)
             .IsRequired(false);
 
-        // OperationType: enum nullable salvo como string
+        // OperationType: enum nullable (Buy/Sell)
         builder.Property(r => r.OperationType)
-            .HasConversion<string>()
+            .HasConversion<string>() // mantém como string para leitura clara
             .HasMaxLength(20)
             .IsRequired(false);
+
+        // LedgerSide: enum nullable (Credit/Debit)
+        builder.Property(r => r.LedgerSide)
+            .HasConversion<string>() // armazena como texto (legível)
+            .HasMaxLength(20)
+            .IsRequired(false);
+
+        // StatementCategory: enum obrigatório (TradeBuy, CashIncomeDividend etc.)
+        builder.Property(r => r.StatementCategory)
+            .HasConversion<string>()
+            .HasMaxLength(40)
+            .IsRequired();
 
         // Movement (evento da planilha "Movimentação")
         builder.Property(r => r.Movement)
@@ -53,15 +65,15 @@ public class B3StatementRowConfiguration : IEntityTypeConfiguration<B3StatementR
 
         builder.Property(r => r.Status)
             .HasConversion<string>()
+            .HasMaxLength(20)
             .IsRequired();
 
         builder.Property(r => r.Error)
             .HasMaxLength(500)
             .IsRequired(false);
 
-        // Índice para consultas rápidas por ImportJobId
+        // Índices
         builder.HasIndex(r => r.ImportJobId);
+        builder.HasIndex(r => r.StatementCategory);
     }
 }
-
-

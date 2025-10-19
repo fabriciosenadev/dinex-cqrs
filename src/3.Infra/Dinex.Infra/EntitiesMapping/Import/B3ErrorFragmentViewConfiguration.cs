@@ -1,8 +1,8 @@
 ﻿namespace Dinex.Infra;
 
-public sealed class B3ErrorFragmentViewConfiguration : IEntityTypeConfiguration<B3ErrorFragmentView>
+public sealed class B3ErrorFragmentViewConfiguration : IEntityTypeConfiguration<B3ErrorFragmentReadModel>
 {
-    public void Configure(EntityTypeBuilder<B3ErrorFragmentView> eb)
+    public void Configure(EntityTypeBuilder<B3ErrorFragmentReadModel> eb)
     {
         eb.ToView("v_b3_error_fragments", "public");
         eb.HasNoKey();

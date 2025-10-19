@@ -15,7 +15,7 @@ public class DinexApiContext : DbContext
     public DbSet<B3StatementRow> B3StatementRows => Set<B3StatementRow>();
 
     #region Views (somente leitura)
-    public DbSet<B3ErrorFragmentView> B3ErrorFragments => Set<B3ErrorFragmentView>();
+    public DbSet<B3ErrorFragmentReadModel> B3ErrorFragments => Set<B3ErrorFragmentReadModel>();
     #endregion
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

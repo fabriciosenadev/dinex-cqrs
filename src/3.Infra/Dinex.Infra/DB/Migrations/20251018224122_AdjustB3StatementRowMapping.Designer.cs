@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dinex.Infra.DB.Migrations
 {
     [DbContext(typeof(DinexApiContext))]
-    [Migration("20250916023922_AddView_B3ErrorFragments")]
-    partial class AddView_B3ErrorFragments
+    [Migration("20251018224122_AdjustB3StatementRowMapping")]
+    partial class AdjustB3StatementRowMapping
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -79,6 +79,42 @@ namespace Dinex.Infra.DB.Migrations
                     b.ToTable("Assets", (string)null);
                 });
 
+            modelBuilder.Entity("Dinex.Core.B3ErrorFragmentView", b =>
+                {
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreatedAt");
+
+                    b.Property<string>("Error")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("Error");
+
+                    b.Property<int>("ErrorIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("ErrorIndex");
+
+                    b.Property<Guid>("ImportJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ImportJobId");
+
+                    b.Property<string>("RawLineJson")
+                        .HasColumnType("text")
+                        .HasColumnName("RawLineJson");
+
+                    b.Property<Guid>("RowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("RowId");
+
+                    b.Property<int?>("RowNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("RowNumber");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("v_b3_error_fragments", "public");
+                });
+
             modelBuilder.Entity("Dinex.Core.B3StatementRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -113,6 +149,10 @@ namespace Dinex.Infra.DB.Migrations
                     b.Property<Guid>("ImportJobId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("LedgerSide")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Movement")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -133,9 +173,15 @@ namespace Dinex.Infra.DB.Migrations
                     b.Property<int>("RowNumber")
                         .HasColumnType("integer");
 
+                    b.Property<string>("StatementCategory")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<decimal?>("TotalValue")
                         .HasPrecision(18, 6)
@@ -151,6 +197,8 @@ namespace Dinex.Infra.DB.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ImportJobId");
+
+                    b.HasIndex("StatementCategory");
 
                     b.ToTable("B3StatementRows");
                 });
@@ -214,6 +262,12 @@ namespace Dinex.Infra.DB.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("PeriodEndUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("PeriodStartUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("timestamp with time zone");

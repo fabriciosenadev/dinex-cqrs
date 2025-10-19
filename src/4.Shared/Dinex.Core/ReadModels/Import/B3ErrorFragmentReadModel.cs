@@ -1,6 +1,6 @@
 ﻿namespace Dinex.Core;
 
-public sealed class B3ErrorFragmentView : BaseEntity
+public sealed class B3ErrorFragmentReadModel
 {
     public Guid RowId { get; set; }
     public Guid ImportJobId { get; set; }
@@ -8,4 +8,5 @@ public sealed class B3ErrorFragmentView : BaseEntity
     public string Error { get; set; } = null!;
     public string? RawLineJson { get; set; }
     public int ErrorIndex { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

@@ -18,6 +18,7 @@ public static class DependencyInjection
         #region import statement
         services.AddScoped<IImportJobRepository, ImportJobRepository>();
         services.AddScoped<IB3StatementRowRepository, B3StatementRowRepository>();
+        services.AddScoped<IB3ErrorFragmentQueryRepository, B3ErrorFragmentQueryRepository>();
         #endregion
 
         #region investment

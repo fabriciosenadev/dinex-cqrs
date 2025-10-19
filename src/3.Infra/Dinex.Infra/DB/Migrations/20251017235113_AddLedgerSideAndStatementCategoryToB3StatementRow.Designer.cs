@@ -3,6 +3,7 @@ using System;
 using Dinex.Infra;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dinex.Infra.DB.Migrations
 {
     [DbContext(typeof(DinexApiContext))]
-    partial class DinexApiContextModelSnapshot : ModelSnapshot
+    [Migration("20251017235113_AddLedgerSideAndStatementCategoryToB3StatementRow")]
+    partial class AddLedgerSideAndStatementCategoryToB3StatementRow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -146,9 +149,8 @@ namespace Dinex.Infra.DB.Migrations
                     b.Property<Guid>("ImportJobId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("LedgerSide")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                    b.Property<int?>("LedgerSide")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Movement")
                         .HasMaxLength(120)
@@ -170,15 +172,12 @@ namespace Dinex.Infra.DB.Migrations
                     b.Property<int>("RowNumber")
                         .HasColumnType("integer");
 
-                    b.Property<string>("StatementCategory")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                    b.Property<int>("StatementCategory")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
                     b.Property<decimal?>("TotalValue")
                         .HasPrecision(18, 6)
@@ -194,8 +193,6 @@ namespace Dinex.Infra.DB.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ImportJobId");
-
-                    b.HasIndex("StatementCategory");
 
                     b.ToTable("B3StatementRows");
                 });
@@ -249,10 +246,8 @@ namespace Dinex.Infra.DB.Migrations
 
                     b.Property<string>("Error")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasDefaultValue("");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("ErrorRows")
                         .HasColumnType("integer");
@@ -273,8 +268,7 @@ namespace Dinex.Infra.DB.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
                     b.Property<int?>("TotalRows")
                         .HasColumnType("integer");
@@ -291,10 +285,6 @@ namespace Dinex.Infra.DB.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("UploadedAt");
 
                     b.ToTable("ImportJobs");
                 });

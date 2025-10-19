@@ -1,4 +1,5 @@
-﻿namespace Dinex.AppService;
+﻿// src/AppService/B3StatementParser.cs
+namespace Dinex.AppService;
 
 public interface IB3StatementParser
 {
@@ -7,6 +8,13 @@ public interface IB3StatementParser
 
 public class B3StatementParser : IB3StatementParser
 {
+    private readonly IB3StatementClassifier _classifier;
+
+    public B3StatementParser(IB3StatementClassifier classifier)
+    {
+        _classifier = classifier;
+    }
+
     public List<B3StatementRow> Parse(Stream fileStream, Guid importJobId)
     {
         var rows = new List<B3StatementRow>();
@@ -32,8 +40,18 @@ public class B3StatementParser : IB3StatementParser
                 decimal? unitPrice = ParseNullableDecimal(row.Cell(7).GetValue<string>());
                 decimal? totalValue = ParseNullableDecimal(row.Cell(8).GetValue<string>());
 
-                // OperationType vem de Entrada/Saída
-                var operationType = FromEntradaSaida(entradaSaida);
+                // Ledger side literal
+                var ledgerSide = FromEntradaSaida(entradaSaida);
+
+                // Classificação principal
+                var (category, tradeSide) = _classifier.Classify(
+                    movement: movimentacao,
+                    asset: asset,
+                    ledgerSide: ledgerSide,
+                    quantity: quantity,
+                    unitPrice: unitPrice,
+                    totalValue: totalValue
+                );
 
                 string? dueDate = null; // não existe na planilha
 
@@ -45,15 +63,17 @@ public class B3StatementParser : IB3StatementParser
                     importJobId: importJobId,
                     rowNumber: rowIdx,
                     asset: asset,
-                    operationType: operationType,
+                    operationType: tradeSide,           // null se não for trade
+                    ledgerSide: ledgerSide,             // Credit/Debit
+                    statementCategory: category,        // semântica
+                    movement: movimentacao,             // original da planilha
                     date: date,
                     dueDate: dueDate,
                     quantity: quantity,
                     unitPrice: unitPrice,
                     totalValue: totalValue,
                     broker: broker,
-                    rawLineJson: rawLineJson,
-                    movement: movimentacao      // <- guarda o evento original
+                    rawLineJson: rawLineJson
                 );
 
                 rows.Add(statementRow);
@@ -79,14 +99,15 @@ public class B3StatementParser : IB3StatementParser
         return rows;
     }
 
-    private static OperationType FromEntradaSaida(string? value)
+    private static LedgerSide? FromEntradaSaida(string? value)
     {
         var v = Normalize(value);
         return v switch
         {
-            "CREDITO" => OperationType.Buy,   // Entrada
-            "DEBITO" => OperationType.Sell,  // Saída
-            _ => throw new Exception($"Entrada/Saída inválido: \"{value}\" (esperado Crédito/Débito)")
+            "CREDITO" => LedgerSide.Credit,
+            "DÉBITO" => LedgerSide.Debit,
+            "DEBITO" => LedgerSide.Debit,
+            _ => null
         };
     }
 
@@ -102,14 +123,12 @@ public class B3StatementParser : IB3StatementParser
             if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
                 sb.Append(ch);
         }
-        return sb.ToString().Normalize(NormalizationForm.FormC); // remove acento -> "CRÉDITO" vira "CREDITO"
+        return sb.ToString().Normalize(NormalizationForm.FormC); // remove acento
     }
 
     private static decimal? ParseNullableDecimal(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
-
-        // trata formatos BR: "1.234,56" -> 1234.56
         var v = value.Replace(".", "").Replace(",", ".");
         return decimal.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)
             ? result
