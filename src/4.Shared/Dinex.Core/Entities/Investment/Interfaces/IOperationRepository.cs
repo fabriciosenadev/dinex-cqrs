@@ -14,4 +14,6 @@ public interface IOperationRepository
         int page,
         int pageSize,
         Func<IQueryable<Operation>, IOrderedQueryable<Operation>>? orderBy = null);
+    //Task<bool> ExistsByExternalIdAsync(string externalId);
+    //Task DeleteByExternalIdAsync(string externalId);
 }

@@ -8,4 +8,5 @@ public interface IBrokerRepository
     Task<Broker?> GetByCnpjAsync(string cnpj);
     Task<IEnumerable<Broker>> GetAllAsync();
     Task SaveChangesAsync();
+    Task<Broker?> GetByNormalizedNameAsync(string normalizedBrokername);
 }

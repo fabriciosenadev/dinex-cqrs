@@ -15,7 +15,7 @@ public class BrokerConfiguration : IEntityTypeConfiguration<Broker>
         builder.Property(x => x.Cnpj)
             .HasMaxLength(14)
             .IsUnicode(false)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(x => x.Website)
             .HasMaxLength(200)

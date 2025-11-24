@@ -13,31 +13,22 @@ public interface IB3StatementClassifier
 
 public class B3StatementClassifier : IB3StatementClassifier
 {
-    // Mapeamento por palavra-chave em MOVIMENTO **normalizado** (maiúsculas, sem acento)
-    private static readonly (Regex rx, StatementCategory cat)[] Map = new[]
+    // Regex para identificar tickers de renda variável (AAAA3, AAAA4, AAAA11, etc).
+    private static readonly Regex RendaVariavelTickerRx =
+        new(@"^[A-Z]{4}[0-9]{1,2}$", RegexOptions.Compiled);
+
+    private static bool IsRendaVariavel(string? asset)
     {
-        // === Ajustes/Posição (sem caixa) ===
-        (Rx(@"^FRACAO\s+EM\s+ATIVOS?"), StatementCategory.PositionFraction),    // "Fração em Ativos"
-        (Rx(@"^ATUALIZA"),                 StatementCategory.PositionAdjustment), // "Atualização"
+        if (string.IsNullOrWhiteSpace(asset)) return false;
 
-        // === Proventos ===
-        (Rx("DIVIDEND"),                   StatementCategory.CashIncomeDividend),
-        (Rx("DIVIDENDO"),                  StatementCategory.CashIncomeDividend),
-        (Rx("JCP|JUROS SOBRE CAPITAL"),    StatementCategory.CashIncomeJCP),
-        (Rx("RENDIMENTO"),                 StatementCategory.CashIncomeFII),
-        (Rx("AMORTIZA"),                   StatementCategory.CashIncomeAmortization),
+        var primary = asset.Split('-', ' ', '·')
+                           .FirstOrDefault()?
+                           .Trim()
+                           .ToUpperInvariant();
 
-        // === Eventos corporativos (sem caixa) ===
-        (Rx("BONIFIC"),                    StatementCategory.CorpActionBonus),
-        (Rx("DESDOBRA"),                   StatementCategory.CorpActionSplit),
-        (Rx("GRUPA"),                      StatementCategory.CorpActionReverseSplit),
-        (Rx("INCORPORA"),                  StatementCategory.CorpActionIncorporation),
-        (Rx("SUBSCRI|DIREITO|EXERCICIO"),  StatementCategory.RightsSubscription),
-
-        // === Transfer / Taxas ===
-        (Rx("TRANSFER"),                   StatementCategory.TransferIn), // direção ajustada abaixo por ledger side
-        (Rx("TAXA|EMOLUM|CORRETAG|ISS|IOF|IRRF"), StatementCategory.TaxOrFee),
-    };
+        return !string.IsNullOrWhiteSpace(primary)
+            && RendaVariavelTickerRx.IsMatch(primary);
+    }
 
     public (StatementCategory category, OperationType? tradeSide) Classify(
         string? movement,
@@ -47,63 +38,39 @@ public class B3StatementClassifier : IB3StatementClassifier
         decimal? unitPrice,
         decimal? totalValue)
     {
-        // Normaliza: MAIÚSCULAS + remove diacríticos (FRAÇÃO -> FRACAO)
-        var mov = Normalize(movement);
+        var mov = (movement ?? "").Trim().ToUpperInvariant();
+        bool isRV = IsRendaVariavel(asset);
 
-        // 1) Map por palavra-chave
-        foreach (var (rx, cat) in Map)
+        // ==========================================================
+        // 1) TRADE (RENA VARIÁVEL COM REGRAS SIMPLIFICADAS)
+        // ==========================================================
+
+        if (isRV)
         {
-            if (rx.IsMatch(mov))
+            // --- A) Transferência - Liquidação → compra/venda ---
+            if (mov.Contains("TRANSFERÊNCIA - LIQUIDAÇÃO") ||
+                mov.Contains("TRANSFERENCIA - LIQUIDACAO"))
             {
-                // Transferências: ajusta In/Out conforme ledger side
-                if (cat == StatementCategory.TransferIn)
+                return ledgerSide switch
                 {
-                    if (ledgerSide == Core.LedgerSide.Credit) return (StatementCategory.TransferIn, null);
-                    if (ledgerSide == Core.LedgerSide.Debit) return (StatementCategory.TransferOut, null);
-                    return (StatementCategory.TransferIn, null);
-                }
-
-                // Para PositionFraction/PositionAdjustment (e demais não-trade), tradeSide = null
-                return (cat, null);
+                    LedgerSide.Credit => (StatementCategory.TradeBuy, OperationType.Buy),
+                    LedgerSide.Debit => (StatementCategory.TradeSell, OperationType.Sell),
+                    _ => (StatementCategory.Unknown, null)
+                };
             }
+
+            // --- B) Compra explícita ---
+            if (mov.Contains("COMPRA") || mov.Contains("C/VISTA") || mov.Contains("C VISTA"))
+                return (StatementCategory.TradeBuy, OperationType.Buy);
+
+            // --- C) Venda explícita ---
+            if (mov.Contains("VENDA") || mov.Contains("V/VISTA") || mov.Contains("V VISTA"))
+                return (StatementCategory.TradeSell, OperationType.Sell);
         }
 
-        // 2) Heurística para trades (Q>0, PU>=0, Total>=0)
-        var hasQP = quantity is > 0 && unitPrice is >= 0 && totalValue is >= 0;
-        if (hasQP)
-        {
-            if (ledgerSide == Core.LedgerSide.Debit) return (StatementCategory.TradeSell, OperationType.Sell);
-            if (ledgerSide == Core.LedgerSide.Credit) return (StatementCategory.TradeBuy, OperationType.Buy);
-            return (StatementCategory.TradeBuy, OperationType.Buy);
-        }
-
-        // 3) Heurística para provento (somente TotalValue > 0)
-        if ((totalValue ?? 0) > 0 && (quantity is null || quantity == 0) && unitPrice is null)
-        {
-            if (!string.IsNullOrWhiteSpace(asset) && asset.Trim().ToUpperInvariant().EndsWith("11"))
-                return (StatementCategory.CashIncomeFII, null);
-
-            return (StatementCategory.CashIncomeDividend, null);
-        }
-
+        // ==========================================================
+        // 2) TUDO QUE NÃO FOR TRADE → SEM CLASSIFICAÇÃO POR HORA
+        // ==========================================================
         return (StatementCategory.Unknown, null);
-    }
-
-    private static Regex Rx(string pattern) =>
-        new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static string Normalize(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return string.Empty;
-        s = s.Trim().ToUpperInvariant();
-
-        var normalized = s.Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder(normalized.Length);
-        foreach (var ch in normalized)
-        {
-            var uc = CharUnicodeInfo.GetUnicodeCategory(ch);
-            if (uc != UnicodeCategory.NonSpacingMark) sb.Append(ch);
-        }
-        return sb.ToString().Normalize(NormalizationForm.FormC); // ex.: "FRAÇÃO" -> "FRACAO"
     }
 }

@@ -38,6 +38,7 @@
 
         /// <summary>List error rows for an ImportJob.</summary>
         [HttpGet("{id:guid}/errors")]
+        [Authorize]
         [ProducesResponseType(typeof(OperationResult<PagedResult<ImportErrorDTO>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -70,6 +71,18 @@
         {
             var result = await _mediator.Send(new DeleteImportJobCommand(id), ct);
             return HandleResult(result); // retorna 200 OK com true em caso de sucesso
+        }
+
+        [HttpPost("{id:guid}/process")]
+        [ProducesResponseType(typeof(OperationResult<ProcessReport>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [Authorize]
+        public async Task<IActionResult> Process(Guid id, [FromBody] ProcessImportJobRequest req, CancellationToken ct)
+        {
+            var cmd = new ProcessImportJobCommand(id, req.WalletId, req.BrokerMode, req.BrokerId);
+            var result = await _mediator.Send(cmd, ct);
+            return HandleResult(result);
         }
     }
 }

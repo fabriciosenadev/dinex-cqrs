@@ -39,4 +39,10 @@ public class BrokerRepository : IBrokerRepository
     {
         await _repository.SaveChangesAsync();
     }
+
+    public async Task<Broker?> GetByNormalizedNameAsync(string normalizedBrokername)
+    {
+        var result = await _repository.FindAsync(x => x.Name == normalizedBrokername);
+        return result.FirstOrDefault();
+    }
 }
