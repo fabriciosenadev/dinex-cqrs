@@ -139,7 +139,6 @@ public sealed class ProcessImportJobCommandHandler
         }
 
         await _opRepo.AddAsync(op);
-        await _opRepo.SaveChangesAsync();
     }
 
     // =========================
@@ -172,7 +171,6 @@ public sealed class ProcessImportJobCommandHandler
         );
 
         await _brokerRepo.AddAsync(newBroker);
-        await _brokerRepo.SaveChangesAsync();
 
         return newBroker.Id;
     }
@@ -213,7 +211,6 @@ public sealed class ProcessImportJobCommandHandler
         }
 
         await _assetRepo.AddAsync(asset);
-        await _assetRepo.SaveChangesAsync();
 
         return asset.Id;
     }
