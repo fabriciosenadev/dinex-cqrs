@@ -19,6 +19,10 @@
         public string RawLineJson { get; private set; } = null!;
         public B3StatementRowStatus Status { get; private set; }
         public string? Error { get; private set; }
+        
+        public bool? ProcessedTrade { get; private set; }
+        public DateTime? ProcessedTradeAtUtc { get; private set; }
+
 
         private B3StatementRow(
             Guid importJobId,
@@ -166,5 +170,13 @@
                 string.IsNullOrWhiteSpace(errorMessage) ? "Erro não especificado durante a validação da linha." : errorMessage,
                 DateTime.UtcNow
             );
+
+        public void MarkTradeProcessed()
+        {
+            ProcessedTrade = true;
+            ProcessedTradeAtUtc = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+            Status = B3StatementRowStatus.Processando;
+        }
     }
 }

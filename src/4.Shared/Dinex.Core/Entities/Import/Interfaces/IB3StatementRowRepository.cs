@@ -9,6 +9,6 @@ public interface IB3StatementRowRepository
     Task SaveChangesAsync();
     Task DeleteAsync(B3StatementRow row);
     //Task<IEnumerable<B3StatementRow>> GetValidTradeRowsAsync(Guid importJobId, int fromRow, int? limit);
-    //Task UpdateAsync(B3StatementRow row);
+    Task UpdateAsync(B3StatementRow row);
 }
 

@@ -75,6 +75,10 @@ public sealed class ProcessImportJobCommandHandler
                 try
                 {
                     await ProcessTradeAsync(row, request);
+
+                    row.MarkTradeProcessed();
+                    await _rowRepo.UpdateAsync(row);
+
                     report.Processed++;
                 }
                 catch

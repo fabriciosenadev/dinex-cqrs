@@ -72,6 +72,15 @@ public class B3StatementRowConfiguration : IEntityTypeConfiguration<B3StatementR
             .HasMaxLength(500)
             .IsRequired(false);
 
+        builder.Property(x => x.ProcessedTrade)
+            .HasColumnName("ProcessedTrade")
+            .IsRequired(false);
+
+        builder.Property(x => x.ProcessedTradeAtUtc)
+            .HasColumnName("ProcessedTradeAtUtc")
+            .IsRequired(false);
+
+
         // Índices
         builder.HasIndex(r => r.ImportJobId);
         builder.HasIndex(r => r.StatementCategory);

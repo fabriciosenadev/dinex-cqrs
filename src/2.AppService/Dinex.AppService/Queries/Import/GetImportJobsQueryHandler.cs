@@ -1,14 +1,18 @@
 ﻿namespace Dinex.AppService;
 
-public class GetImportJobsQueryHandler :
-    IRequestHandler<GetImportJobsQuery, OperationResult<IEnumerable<ImportJobListItemDTO>>>,
-    IQueryHandler
+public sealed class GetImportJobsQueryHandler
+    : IRequestHandler<GetImportJobsQuery, OperationResult<IEnumerable<ImportJobListItemDTO>>>
+    , IQueryHandler
 {
-    private readonly IImportJobRepository _repo;
+    private readonly IImportJobRepository _jobRepo;
+    private readonly IB3StatementRowRepository _rowRepo;
 
-    public GetImportJobsQueryHandler(IImportJobRepository repo)
+    public GetImportJobsQueryHandler(
+        IImportJobRepository jobRepo,
+        IB3StatementRowRepository rowRepo)
     {
-        _repo = repo;
+        _jobRepo = jobRepo;
+        _rowRepo = rowRepo;
     }
 
     public async Task<OperationResult<IEnumerable<ImportJobListItemDTO>>> Handle(
@@ -17,50 +21,78 @@ public class GetImportJobsQueryHandler :
     {
         var result = new OperationResult<IEnumerable<ImportJobListItemDTO>>();
 
-        var items = await _repo.GetAllAsync();
+        // 1) Jobs (como já era)
+        var items = await _jobRepo.GetAllAsync();
 
         // Se vocês usam deleção lógica, filtrar aqui:
         // items = items.Where(x => x.DeletedAt == null);
 
-        // filtro por status (string → enum)
+        // 2) filtro por status (string → enum)
         if (!string.IsNullOrWhiteSpace(request.Status) &&
             Enum.TryParse<ImportJobStatus>(request.Status, ignoreCase: true, out var status))
         {
             items = items.Where(x => x.Status == status);
         }
 
-        // ordena do mais novo
+        // 3) ordena do mais novo
         items = items.OrderByDescending(x => x.UploadedAt);
 
-        // paginação simples (opcional)
-        if (request.Page.HasValue && request.PageSize.HasValue && request.Page > 0 && request.PageSize > 0)
+        // 4) paginação em memória (igual já faz hoje)
+        if (request.Page.HasValue && request.PageSize.HasValue &&
+            request.Page > 0 && request.PageSize > 0)
         {
             items = items
                 .Skip(((int)request.Page - 1) * (int)request.PageSize)
                 .Take((int)request.PageSize);
         }
 
-        var dtos = items.Select(x =>
+        var jobsPage = items.ToList();
+
+        // 5) para cada job, buscar as linhas e calcular métricas de trade
+        var dtoList = new List<ImportJobListItemDTO>();
+
+        foreach (var job in jobsPage)
         {
-            var total = x.TotalRows ?? 0;
-            var errors = x.ErrorRows ?? 0;
+            // pergunta pro repositório de linhas
+            var rows = await _rowRepo.GetByImportJobIdAsync(job.Id);
+
+            var total = job.TotalRows ?? 0;
+            var errors = job.ErrorRows ?? 0;
             var imported = Math.Max(0, total - errors);
 
-            return new ImportJobListItemDTO
+            // só RV trade (a regra que estamos processando hoje)
+            var tradeRows = rows.Where(r =>
+                    r.StatementCategory == StatementCategory.TradeBuy ||
+                    r.StatementCategory == StatementCategory.TradeSell)
+                .ToList();
+
+            var totalTrades = tradeRows.Count;
+            var processedTrades = tradeRows.Count(r => r.ProcessedTrade.GetValueOrDefault());
+            var remainingTrades = Math.Max(0, totalTrades - processedTrades);
+
+            var dto = new ImportJobListItemDTO
             {
-                Id = x.Id,
-                FileName = x.FileName,
-                UploadedAt = x.UploadedAt,
-                Status = x.Status.ToString(),
-                TotalRows = x.TotalRows,
+                Id = job.Id,
+                FileName = job.FileName,
+                UploadedAt = job.UploadedAt,
+                Status = job.Status.ToString(),
+
+                TotalRows = job.TotalRows,
                 ImportedRows = imported,
                 ErrorsCount = errors,
-                PeriodStartUtc = x.PeriodStartUtc.GetValueOrDefault(),
-                PeriodEndUtc = x.PeriodEndUtc.GetValueOrDefault()
-            };
-        });
+                PeriodStartUtc = job.PeriodStartUtc.GetValueOrDefault(),
+                PeriodEndUtc = job.PeriodEndUtc.GetValueOrDefault(),
 
-        result.SetData(dtos);
+                // se você criar esses campos no DTO, dá pra alimentar o front:
+                TotalTradeRows = totalTrades,
+                ProcessedTradeRows = processedTrades,
+                RemainingTradeRows = remainingTrades
+            };
+
+            dtoList.Add(dto);
+        }
+
+        result.SetData(dtoList);
         return result;
     }
 }

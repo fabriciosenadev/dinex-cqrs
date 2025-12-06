@@ -21,6 +21,11 @@ public class B3StatementRowRepository : IB3StatementRowRepository
         await _repository.AddRangeAsync(rows);
     }
 
+    public async Task UpdateAsync(B3StatementRow row)
+    {
+        await _repository.UpdateAsync(row);
+    }
+
     public async Task<IEnumerable<B3StatementRow>> GetByImportJobIdAsync(Guid importJobId)
     {
         return await _repository.FindAsync(x => x.ImportJobId == importJobId);
