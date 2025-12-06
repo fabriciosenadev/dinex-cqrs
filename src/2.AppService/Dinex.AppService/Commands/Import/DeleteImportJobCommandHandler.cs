@@ -27,12 +27,22 @@ public sealed class DeleteImportJobCommandHandler
                 return new OperationResult<bool>(false)
                     .AddError("Não é possível excluir um job em processamento.");
 
-            // 1) remove fisicamente as linhas associadas (defensivo caso FK não esteja em CASCADE)
+            // 1) carrega as linhas associadas
             var rows = await _rows.GetByImportJobIdAsync(job.Id);
+
+            // 🔒 NOVA REGRA: se já tiver qualquer trade processado, não pode excluir
+            var hasProcessedTrades = rows.Any(r => r.ProcessedTrade == true);
+            if (hasProcessedTrades)
+            {
+                return new OperationResult<bool>(false)
+                    .AddError("Não é possível excluir uma importação que já possui movimentações processadas.");
+            }
+
+            // 2) remove fisicamente as linhas associadas (defensivo caso FK não esteja em CASCADE)
             foreach (var r in rows)
                 await _rows.DeleteAsync(r); // seu Repository<T> já salva a cada operação
 
-            // 2) remove fisicamente o job
+            // 3) remove fisicamente o job
             await _jobs.DeleteAsync(job); // seu Repository<T> já salva a cada operação
 
             return new OperationResult<bool>(true);
