@@ -9,19 +9,22 @@ public sealed class ProcessImportJobCommandHandler
     private readonly IAssetRepository _assetRepo;
     private readonly IOperationRepository _opRepo;
     private readonly IBrokerRepository _brokerRepo; // ⬅ novo
+    private readonly IPositionService _positionService;
 
     public ProcessImportJobCommandHandler(
         IImportJobRepository jobRepo,
         IB3StatementRowRepository rowRepo,
         IAssetRepository assetRepo,
         IOperationRepository opRepo,
-        IBrokerRepository brokerRepo) // ⬅ injeta aqui
+        IBrokerRepository brokerRepo,
+        IPositionService positionService) // ⬅ injeta aqui
     {
         _jobRepo = jobRepo;
         _rowRepo = rowRepo;
         _assetRepo = assetRepo;
         _opRepo = opRepo;
         _brokerRepo = brokerRepo;
+        _positionService = positionService;
     }
 
     public async Task<OperationResult<ProcessReport>> Handle(
@@ -143,6 +146,8 @@ public sealed class ProcessImportJobCommandHandler
         }
 
         await _opRepo.AddAsync(op);
+
+        await _positionService.RecalculatePositionAsync(walletId, assetId, op);
     }
 
     // =========================
