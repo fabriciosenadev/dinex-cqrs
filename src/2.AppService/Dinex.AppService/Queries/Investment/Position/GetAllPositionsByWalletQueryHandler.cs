@@ -20,7 +20,7 @@ public class GetAllPositionsByWalletQueryHandler : IQueryHandler, IRequestHandle
         var positions = await _positionRepository.GetByWalletAsync(request.WalletId);
 
         var filtered = positions
-            .Where(x => x.DeletedAt == null)
+            .Where(x => x.DeletedAt == null && x.CurrentQuantity > 0)
             .ToList();
 
         if (!filtered.Any())

@@ -21,37 +21,54 @@ public class PositionService : IPositionService
         _operationRepository = operationRepository;
     }
 
-    public async Task RecalculatePositionAsync(Guid walletId, Guid assetId, Operation? triggeringOperation = null)
+    public async Task RecalculatePositionAsync(
+        Guid walletId,
+        Guid assetId,
+        Operation? triggeringOperation = null)
     {
-        var operations = (await _operationRepository.GetByWalletAndAssetAsync(walletId, assetId))
+        var operations = (await _operationRepository
+                .GetByWalletAndAssetAsync(walletId, assetId))
             ?.OrderBy(o => o.ExecutedAt)
             .ToList();
 
+        // Nenhuma operação → posição encerrada
         if (operations is null || !operations.Any())
         {
-            await _positionRepository.DeleteAsync(walletId, assetId);
+            var existing = await _positionRepository
+                .GetAnyByWalletAndAssetAsync(walletId, assetId);
+
+            if (existing != null && existing.DeletedAt == null)
+            {
+                existing.MarkAsDeleted();
+                await _positionRepository.UpdateAsync(existing);
+            }
+
             return;
         }
 
-        // Descobrir se pode ser incremental (operação no final da lista)
+        // Pode ser incremental?
         bool podeIncremental = false;
         if (triggeringOperation != null)
         {
-            var ultimaData = operations.Last().ExecutedAt;
-            // Se a triggeringOperation é a última cronologicamente E não houve update/delete de antigas
-            podeIncremental = triggeringOperation.ExecutedAt >= ultimaData && triggeringOperation.Id == operations.Last().Id;
+            var ultima = operations.Last();
+            podeIncremental =
+                triggeringOperation.Id == ultima.Id &&
+                triggeringOperation.ExecutedAt >= ultima.ExecutedAt;
         }
 
-        var position = await _positionRepository.GetByWalletAndAssetAsync(walletId, assetId);
+        var positionAny =
+            await _positionRepository.GetAnyByWalletAndAssetAsync(walletId, assetId);
 
-        decimal quantity = 0, invested = 0, avgPrice = 0;
+        decimal quantity = 0;
+        decimal invested = 0;
+        decimal avgPrice = 0;
 
-        if (podeIncremental && position != null)
+        // 🔒 Incremental somente se a posição existir E estiver ativa
+        if (podeIncremental && positionAny != null && positionAny.DeletedAt == null)
         {
-            // Cálculo incremental
-            quantity = position.CurrentQuantity;
-            avgPrice = position.AveragePrice;
-            invested = position.InvestedValue;
+            quantity = positionAny.CurrentQuantity;
+            invested = positionAny.InvestedValue;
+            avgPrice = positionAny.AveragePrice;
 
             var op = triggeringOperation!;
             switch (op.Type)
@@ -61,6 +78,7 @@ public class PositionService : IPositionService
                     quantity += op.Quantity;
                     avgPrice = quantity > 0 ? invested / quantity : 0;
                     break;
+
                 case OperationType.Sell:
                     invested -= avgPrice * op.Quantity;
                     quantity -= op.Quantity;
@@ -81,6 +99,7 @@ public class PositionService : IPositionService
                         quantity += op.Quantity;
                         avgPrice = quantity > 0 ? invested / quantity : 0;
                         break;
+
                     case OperationType.Sell:
                         invested -= avgPrice * op.Quantity;
                         quantity -= op.Quantity;
@@ -91,15 +110,40 @@ public class PositionService : IPositionService
             }
         }
 
-        if (position is null)
+        // 🔚 Posição encerrada → soft delete
+        if (quantity == 0)
         {
-            var newPosition = Position.Create(walletId, assetId, quantity, avgPrice, invested);
+            if (positionAny != null && positionAny.DeletedAt == null)
+            {
+                positionAny.MarkAsDeleted();
+                await _positionRepository.UpdateAsync(positionAny);
+            }
+            return;
+        }
+
+        // 🔄 Restaura se estava deletada
+        if (positionAny != null && positionAny.DeletedAt != null)
+        {
+            positionAny.Restore();
+        }
+
+        // ➕ Cria ou atualiza
+        if (positionAny is null)
+        {
+            var newPosition = Position.Create(
+                walletId,
+                assetId,
+                quantity,
+                avgPrice,
+                invested
+            );
+
             await _positionRepository.AddAsync(newPosition);
         }
         else
         {
-            position.Update(quantity, avgPrice, invested);
-            await _positionRepository.UpdateAsync(position);
+            positionAny.Update(quantity, avgPrice, invested);
+            await _positionRepository.UpdateAsync(positionAny);
         }
     }
 }

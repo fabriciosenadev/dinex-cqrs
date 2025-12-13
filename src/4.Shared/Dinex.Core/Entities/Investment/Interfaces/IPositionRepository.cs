@@ -9,6 +9,8 @@ public interface IPositionRepository
     Task<Position?> GetByWalletAndAssetAsync(Guid walletId, Guid assetId);
     Task<IEnumerable<Position>> GetByWalletAsync(Guid walletId);
     Task SaveChangesAsync();
+    Task<Position?> GetAnyByWalletAndAssetAsync(Guid walletId, Guid assetId);
+
 }
 
 

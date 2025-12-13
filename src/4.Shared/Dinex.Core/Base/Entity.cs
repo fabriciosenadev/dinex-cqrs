@@ -64,4 +64,11 @@ public abstract class Entity : BaseEntity, INotifiableEntity
         if (IsDeleted())
             AddNotification(entityName, $"A entidade {entityName} foi excluída e não pode mais ser utilizada.");
     }
+
+    public void Restore()
+    {
+        DeletedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
 }

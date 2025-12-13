@@ -33,14 +33,33 @@ public class PositionRepository : IPositionRepository
 
     public async Task<Position?> GetByWalletAndAssetAsync(Guid walletId, Guid assetId)
     {
-        var result = await _repository.FindAsync(p => p.WalletId == walletId && p.AssetId == assetId);
+        var result = await _repository.FindAsync(p =>
+            p.WalletId == walletId &&
+            p.AssetId == assetId &&
+            p.DeletedAt == null
+        );
+
         return result.FirstOrDefault();
     }
 
     public async Task<IEnumerable<Position>> GetByWalletAsync(Guid walletId)
     {
-        var result = await _repository.FindAsync(p => p.WalletId == walletId);
+        var result = await _repository.FindAsync(p =>
+            p.WalletId == walletId &&
+            p.DeletedAt == null
+        );
+
         return result;
+    }
+
+    public async Task<Position?> GetAnyByWalletAndAssetAsync(Guid walletId, Guid assetId)
+    {
+        var result = await _repository.FindAsync(p =>
+            p.WalletId == walletId &&
+            p.AssetId == assetId
+        );
+
+        return result.FirstOrDefault();
     }
 
     public async Task SaveChangesAsync()
