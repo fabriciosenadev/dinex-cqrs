@@ -13,21 +13,33 @@ public interface IB3StatementClassifier
 
 public class B3StatementClassifier : IB3StatementClassifier
 {
-    // Regex para identificar tickers de renda variável (AAAA3, AAAA4, AAAA11, etc).
+    // encontra AAAA3, AAAA11, e também AAAA3F (fracionário)
     private static readonly Regex RendaVariavelTickerRx =
-        new(@"^[A-Z]{4}[0-9]{1,2}$", RegexOptions.Compiled);
+        new(@"\b[A-Z0-9]{4,6}[0-9]{1,2}F?\b", RegexOptions.Compiled);
 
     private static bool IsRendaVariavel(string? asset)
     {
         if (string.IsNullOrWhiteSpace(asset)) return false;
 
-        var primary = asset.Split('-', ' ', '·')
-                           .FirstOrDefault()?
-                           .Trim()
-                           .ToUpperInvariant();
+        var normalized = Normalize(asset);
+        return RendaVariavelTickerRx.IsMatch(normalized);
+    }
 
-        return !string.IsNullOrWhiteSpace(primary)
-            && RendaVariavelTickerRx.IsMatch(primary);
+
+    // reaproveita o mesmo Normalize do parser (ideal: extrair para helper compartilhado)
+    private static string Normalize(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+        s = s.Trim().ToUpperInvariant();
+        var normalized = s.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder(normalized.Length);
+        foreach (var ch in normalized)
+        {
+            var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
+                sb.Append(ch);
+        }
+        return sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
     }
 
     public (StatementCategory category, OperationType? tradeSide) Classify(
@@ -38,7 +50,7 @@ public class B3StatementClassifier : IB3StatementClassifier
         decimal? unitPrice,
         decimal? totalValue)
     {
-        var mov = (movement ?? "").Trim().ToUpperInvariant();
+        var mov = Normalize(movement);
         bool isRV = IsRendaVariavel(asset);
 
         // ==========================================================
