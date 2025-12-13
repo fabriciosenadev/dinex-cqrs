@@ -13,7 +13,7 @@ public class PositionsController : MainController
         _mediator = mediator;
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [Authorize]
     [ProducesResponseType(typeof(PositionDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -25,7 +25,7 @@ public class PositionsController : MainController
         return HandleResult(result);
     }
 
-    [HttpGet("wallet/{walletId}")]
+    [HttpGet("wallet/{walletId:guid}")]
     [Authorize]
     [ProducesResponseType(typeof(IEnumerable<PositionDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

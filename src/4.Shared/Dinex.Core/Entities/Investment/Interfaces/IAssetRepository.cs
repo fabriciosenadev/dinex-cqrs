@@ -13,4 +13,5 @@ public interface IAssetRepository
         int page,
         int pageSize,
         Func<IQueryable<Asset>, IOrderedQueryable<Asset>>? orderBy = null);
+    Task<IEnumerable<Asset>> GetByIdsAsync(IEnumerable<Guid> ids);
 }

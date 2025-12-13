@@ -48,5 +48,19 @@ public class AssetRepository : IAssetRepository
     {
         return await _repository.GetPagedAsync(filter, page, pageSize, orderBy);
     }
+
+    public async Task<IEnumerable<Asset>> GetByIdsAsync(IEnumerable<Guid> ids)
+    {
+        var list = ids?.Distinct().ToList();
+        if (list == null || list.Count == 0)
+            return Enumerable.Empty<Asset>();
+
+        var result = await _repository.FindAsync(x => 
+            ids.Contains(x.Id) 
+            && 
+            x.DeletedAt == null
+        );
+        return result;
+    }
 }
 

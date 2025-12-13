@@ -9,4 +9,14 @@ public class PositionDTO
     public decimal CurrentQuantity { get; set; }
     public decimal AveragePrice { get; set; }
     public decimal InvestedValue { get; set; }
+
+    // Extra fields for UI
+    public string? AssetName { get; set; }
+    public string? AssetCode { get; set; }
+    public AssetType? AssetType { get; set; }
+
+    /// <summary>
+    /// Percentage of the wallet invested in this position (0–100).
+    /// </summary>
+    public decimal WalletSharePercent { get; set; }
 }
