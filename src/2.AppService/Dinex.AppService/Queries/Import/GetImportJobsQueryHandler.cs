@@ -1,4 +1,6 @@
-﻿namespace Dinex.AppService;
+﻿using Dinex.Core;
+
+namespace Dinex.AppService;
 
 public sealed class GetImportJobsQueryHandler
     : IRequestHandler<GetImportJobsQuery, OperationResult<IEnumerable<ImportJobListItemDTO>>>
@@ -67,8 +69,15 @@ public sealed class GetImportJobsQueryHandler
                 .ToList();
 
             var totalTrades = tradeRows.Count;
-            var processedTrades = tradeRows.Count(r => r.ProcessedTrade.GetValueOrDefault());
-            var remainingTrades = Math.Max(0, totalTrades - processedTrades);
+            var processedTrades = tradeRows.Count(r => r.ProcessedTrade == true);
+
+            // pendente “processável”
+            var pendingTrades = tradeRows.Count(r =>
+                r.ProcessedTrade != true &&
+                r.Status != B3StatementRowStatus.Erro); // ajuste pro teu enum
+
+            // erros de trade (pra você exibir separado se quiser)
+            var tradeErrorRows = tradeRows.Count(r => r.Status == B3StatementRowStatus.Erro);
 
             var dto = new ImportJobListItemDTO
             {
@@ -86,7 +95,8 @@ public sealed class GetImportJobsQueryHandler
                 // se você criar esses campos no DTO, dá pra alimentar o front:
                 TotalTradeRows = totalTrades,
                 ProcessedTradeRows = processedTrades,
-                RemainingTradeRows = remainingTrades
+                RemainingTradeRows = pendingTrades,
+                TradeErrorRows = tradeErrorRows // novo campo opcional
             };
 
             dtoList.Add(dto);

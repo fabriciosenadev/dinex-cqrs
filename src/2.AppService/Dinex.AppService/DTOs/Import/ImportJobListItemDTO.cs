@@ -16,4 +16,5 @@ public class ImportJobListItemDTO
     public int TotalTradeRows { get; set; }
     public int ProcessedTradeRows { get; set; }
     public int RemainingTradeRows { get; set; }
+    public int TradeErrorRows { get; set; }
 }
