@@ -14,15 +14,42 @@ public interface IB3StatementClassifier
 public class B3StatementClassifier : IB3StatementClassifier
 {
     // encontra AAAA3, AAAA11, e também AAAA3F (fracionário).
-    // Obs: não usamos isso como "gate" para proventos/eventos; serve mais como heurística de ticker.
     private static readonly Regex RendaVariavelTickerRx =
-        new(@"\b[A-Z0-9]{4,6}[0-9]{1,2}F?\b", RegexOptions.Compiled);
+        new(@"\b[A-Z]{4}[0-9]{1,2}F?\b", RegexOptions.Compiled);
 
     private static bool LooksLikeTicker(string? asset)
     {
         if (string.IsNullOrWhiteSpace(asset)) return false;
         var normalized = Normalize(asset);
         return RendaVariavelTickerRx.IsMatch(normalized);
+    }
+
+    // guard rail: renda fixa (CDB/LCI/LCA etc)
+    private static bool LooksLikeFixedIncome(string? asset)
+    {
+        if (string.IsNullOrWhiteSpace(asset)) return false;
+
+        var a = Normalize(asset);
+
+        // exemplos reais teus:
+        // "CDB - CDB223TZK4R - ...", "LCI - 19B00199675 - ..."
+        // então o prefixo é o que manda.
+        if (a.StartsWith("CDB ") || a.StartsWith("CDB -")) return true;
+        if (a.StartsWith("LCI ") || a.StartsWith("LCI -")) return true;
+        if (a.StartsWith("LCA ") || a.StartsWith("LCA -")) return true;
+        if (a.StartsWith("LC ") || a.StartsWith("LC -")) return true;
+
+        // alguns comuns de RF que podem aparecer no futuro
+        if (a.StartsWith("CRI ") || a.StartsWith("CRI -")) return true;
+        if (a.StartsWith("CRA ") || a.StartsWith("CRA -")) return true;
+        if (a.StartsWith("DEB ") || a.StartsWith("DEB -")) return true;
+        if (a.Contains("DEBENTURE")) return true;
+
+        // tesouro/ títulos públicos (se algum extrato vier assim)
+        if (a.Contains("TESOURO")) return true;
+        if (a.Contains("LTN") || a.Contains("LFT") || a.Contains("NTN")) return true;
+
+        return false;
     }
 
     // remove acentos e normaliza caixa/espacos
@@ -40,7 +67,6 @@ public class B3StatementClassifier : IB3StatementClassifier
                 sb.Append(ch);
         }
 
-        // remove espaços duplicados também ajuda em alguns extratos
         return Regex.Replace(sb.ToString(), @"\s+", " ")
             .Normalize(System.Text.NormalizationForm.FormC);
     }
@@ -58,9 +84,11 @@ public class B3StatementClassifier : IB3StatementClassifier
         // ==========================================================
         // 0) Guard rails
         // ==========================================================
-        // Se não tem movimento, não tenta adivinhar
         if (string.IsNullOrWhiteSpace(mov))
             return (StatementCategory.Unknown, null);
+
+        var isFixedIncome = LooksLikeFixedIncome(asset);
+        var looksLikeTicker = LooksLikeTicker(asset);
 
         // ==========================================================
         // 1) PROVENTOS (cash income) — vem antes de trade
@@ -71,7 +99,6 @@ public class B3StatementClassifier : IB3StatementClassifier
         if (mov.Contains("JCP") || mov.Contains("JUROS SOBRE CAPITAL"))
             return (StatementCategory.CashIncomeJCP, null);
 
-        // "RENDIMENTO" costuma ser FII, mas se vier em ações o usuário ajusta depois
         if (mov.Contains("RENDIMENTO"))
             return (StatementCategory.CashIncomeFII, null);
 
@@ -79,7 +106,7 @@ public class B3StatementClassifier : IB3StatementClassifier
             return (StatementCategory.CashIncomeAmortization, null);
 
         // ==========================================================
-        // 2) EVENTOS SEM CAIXA (corporate actions) — afetam quantidade
+        // 2) EVENTOS SEM CAIXA (corporate actions)
         // ==========================================================
         if (mov.Contains("BONIFIC"))
             return (StatementCategory.CorpActionBonus, null);
@@ -90,16 +117,14 @@ public class B3StatementClassifier : IB3StatementClassifier
         if (mov.Contains("GRUPA"))
             return (StatementCategory.CorpActionReverseSplit, null);
 
-        // "INCORPORACAO" / "INCORPORA" (sem acento)
         if (mov.Contains("INCORPORA"))
             return (StatementCategory.CorpActionIncorporation, null);
 
-        // direitos/subscrição
         if (mov.Contains("DIREITO") || mov.Contains("SUBSCR"))
             return (StatementCategory.RightsSubscription, null);
 
         // ==========================================================
-        // 3) AJUSTES / ATUALIZAÇÕES DE POSIÇÃO
+        // 3) AJUSTES / POSIÇÃO
         // ==========================================================
         if (mov.Contains("FRACAO"))
             return (StatementCategory.PositionFraction, null);
@@ -110,7 +135,6 @@ public class B3StatementClassifier : IB3StatementClassifier
         // ==========================================================
         // 4) TAXAS / TARIFAS
         // ==========================================================
-        // cobre "EMOLUMENTOS", "TAXA", "TARIFA", "CORRETAGEM", "ISS"
         if (mov.Contains("EMOLUMENT") ||
             mov.Contains("TAXA") ||
             mov.Contains("TARIFA") ||
@@ -121,21 +145,39 @@ public class B3StatementClassifier : IB3StatementClassifier
         }
 
         // ==========================================================
-        // 5) TRANSFERÊNCIAS (não-trade) VS "TRANSFERENCIA - LIQUIDACAO" (trade)
+        // 5) TRANSFERÊNCIAS
         // ==========================================================
-        // IMPORTANTE: mov já está normalizado sem acento
+        // A) "TRANSFERENCIA - LIQUIDACAO" é RV trade na maioria dos casos,
+        //    mas pode aparecer em RF (CDB/LCI/LCA). Guard rail: RF nunca vira Trade.
         if (mov.Contains("TRANSFERENCIA - LIQUIDACAO"))
         {
-            // Heurística principal do extrato B3:
-            // Crédito -> compra (entrada de ativo), Débito -> venda (saída de ativo)
-            return ledgerSide switch
+            // RF: NÃO É TRADE de RV
+            if (isFixedIncome)
             {
-                LedgerSide.Credit => (StatementCategory.TradeBuy, OperationType.Buy),
-                LedgerSide.Debit => (StatementCategory.TradeSell, OperationType.Sell),
-                _ => (StatementCategory.Unknown, null)
-            };
+                return ledgerSide switch
+                {
+                    LedgerSide.Credit => (StatementCategory.TransferIn, null),
+                    LedgerSide.Debit => (StatementCategory.TransferOut, null),
+                    _ => (StatementCategory.Unknown, null)
+                };
+            }
+
+            // RV: só assume trade se tiver cara de ticker
+            if (looksLikeTicker)
+            {
+                return ledgerSide switch
+                {
+                    LedgerSide.Credit => (StatementCategory.TradeBuy, OperationType.Buy),
+                    LedgerSide.Debit => (StatementCategory.TradeSell, OperationType.Sell),
+                    _ => (StatementCategory.Unknown, null)
+                };
+            }
+
+            // sem ticker e sem RF → melhor não adivinhar
+            return (StatementCategory.Unknown, null);
         }
 
+        // B) outras transferências não-trade
         if (mov.Contains("TRANSFERENCIA"))
         {
             return ledgerSide switch
@@ -149,28 +191,23 @@ public class B3StatementClassifier : IB3StatementClassifier
         // ==========================================================
         // 6) TRADE explícito (por último)
         // ==========================================================
-        // Aqui é OK usar heurística de ticker, mas não é obrigatório.
-        // Se vier "COMPRA" / "VENDA" sem ticker, ainda assim provavelmente é trade,
-        // porém manter o LooksLikeTicker reduz falsos positivos em descrições soltas.
-        var looksLikeTicker = LooksLikeTicker(asset);
-
-        if (mov.Contains("COMPRA") || mov.Contains("C/VISTA") || mov.Contains("C VISTA"))
+        // Guard rail: RF nunca vira trade mesmo se o texto tiver "COMPRA"/"VENDA"
+        if (!isFixedIncome)
         {
-            return looksLikeTicker
-                ? (StatementCategory.TradeBuy, OperationType.Buy)
-                : (StatementCategory.TradeBuy, OperationType.Buy);
+            if (mov.Contains("COMPRA") || mov.Contains("C/VISTA") || mov.Contains("C VISTA"))
+            {
+                // aqui pode manter sem gate rígido, mas se quiser reduzir falso positivo:
+                // if (!looksLikeTicker) return (StatementCategory.Unknown, null);
+                return (StatementCategory.TradeBuy, OperationType.Buy);
+            }
+
+            if (mov.Contains("VENDA") || mov.Contains("V/VISTA") || mov.Contains("V VISTA"))
+            {
+                // if (!looksLikeTicker) return (StatementCategory.Unknown, null);
+                return (StatementCategory.TradeSell, OperationType.Sell);
+            }
         }
 
-        if (mov.Contains("VENDA") || mov.Contains("V/VISTA") || mov.Contains("V VISTA"))
-        {
-            return looksLikeTicker
-                ? (StatementCategory.TradeSell, OperationType.Sell)
-                : (StatementCategory.TradeSell, OperationType.Sell);
-        }
-
-        // ==========================================================
-        // fallback
-        // ==========================================================
         return (StatementCategory.Unknown, null);
     }
 }

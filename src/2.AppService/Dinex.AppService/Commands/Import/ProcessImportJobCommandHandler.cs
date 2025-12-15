@@ -11,6 +11,24 @@ public sealed class ProcessImportJobCommandHandler
     private readonly IBrokerRepository _brokerRepo; // ⬅ novo
     private readonly IPositionService _positionService;
 
+    static readonly HashSet<StatementCategory> ProcessableCategories = new()
+    {
+        StatementCategory.TradeBuy,
+        StatementCategory.TradeSell,
+
+        // eventos que alteram quantidade sem caixa
+        StatementCategory.CorpActionSplit,
+        StatementCategory.CorpActionBonus,
+        StatementCategory.CorpActionReverseSplit,
+
+        // ajustes/posição
+        StatementCategory.PositionAdjustment,
+        StatementCategory.PositionFraction,
+
+        // se quiser tentar depois (eu deixaria pra fase 2)
+        // StatementCategory.CorpActionIncorporation,
+    };
+
     public ProcessImportJobCommandHandler(
         IImportJobRepository jobRepo,
         IB3StatementRowRepository rowRepo,
@@ -61,8 +79,8 @@ public sealed class ProcessImportJobCommandHandler
             // Filtra só linhas válidas e só Trades
             var rows = allRows
                 .Where(r => r.Status != B3StatementRowStatus.Erro)
-                .Where(r => r.StatementCategory == StatementCategory.TradeBuy
-                         || r.StatementCategory == StatementCategory.TradeSell)
+                .Where(r => r.ProcessedTrade != true) // ok por enquanto, apesar do nome ruim
+                .Where(r => ProcessableCategories.Contains(r.StatementCategory))
                 .OrderBy(r => r.RowNumber)
                 .ToList();
 
@@ -77,17 +95,19 @@ public sealed class ProcessImportJobCommandHandler
             {
                 try
                 {
-                    await ProcessTradeAsync(row, request);
+                    await ProcessRowAsync(row, request);
 
-                    row.MarkTradeProcessed();
+                    row.MarkTradeProcessed(); // por enquanto, reutiliza
                     await _rowRepo.UpdateAsync(row);
 
                     report.Processed++;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    row.MarkAsError(ex.Message);
+                    await _rowRepo.UpdateAsync(row);
+
                     report.Errors++;
-                    // Não relança – seguimos para a próxima linha.
                 }
             }
 
@@ -107,10 +127,38 @@ public sealed class ProcessImportJobCommandHandler
     // =========================
     // Trades (direto ao ponto)
     // =========================
+
+    private async Task ProcessRowAsync(B3StatementRow row, ProcessImportJobCommand request)
+    {
+        switch (row.StatementCategory)
+        {
+            case StatementCategory.TradeBuy:
+            case StatementCategory.TradeSell:
+                await ProcessTradeAsync(row, request);
+                return;
+
+            case StatementCategory.CorpActionSplit:
+            case StatementCategory.CorpActionBonus:
+            case StatementCategory.CorpActionReverseSplit:
+            case StatementCategory.PositionAdjustment:
+            case StatementCategory.PositionFraction:
+                await ProcessNoCashPositionChangeAsync(row, request);
+                return;
+
+            default:
+                // defensivo: se passou no filtro, não deveria cair aqui
+                throw new InvalidOperationException($"Categoria não suportada: {row.StatementCategory}");
+        }
+    }
+
     private async Task ProcessTradeAsync(
         B3StatementRow row,
         ProcessImportJobCommand request)
     {
+        // ===== Guard rail 1: renda fixa nunca vira Operation =====
+        if (LooksLikeFixedIncome(row.Asset))
+            throw new InvalidOperationException($"Linha {row.RowNumber}: ativo parece Renda Fixa, não é trade de RV.");
+
         // 1) Wallet: fixa por request (obrigatória)
         var walletId = request.WalletId;
 
@@ -128,13 +176,21 @@ public sealed class ProcessImportJobCommandHandler
                          ? OperationType.Sell
                          : OperationType.Buy);
 
-        // 5) Cria Operation
+        // 5) sanity check ticker (opcional, mas recomendado)
+        var ticker = ExtractTicker(row.Asset!);
+        if (!LooksLikeEquityTicker(ticker))
+            throw new InvalidOperationException($"Linha {row.RowNumber}: ticker inválido para RV ('{ticker}').");
+
+        // 6) valida campos numéricos essenciais
+        if (row.Quantity is null || row.UnitPrice is null)
+            throw new InvalidOperationException($"Linha {row.RowNumber}: Quantity/UnitPrice ausentes.");
+
         var op = Operation.Create(
             walletId: walletId,
             assetId: assetId,
             type: opType,
-            quantity: row.Quantity!.Value,
-            unitPrice: row.UnitPrice!.Value,
+            quantity: row.Quantity.Value,
+            unitPrice: row.UnitPrice.Value,
             executedAt: EnsureUtc(row.Date),
             brokerId: brokerId
         );
@@ -148,6 +204,56 @@ public sealed class ProcessImportJobCommandHandler
         await _opRepo.AddAsync(op);
 
         await _positionService.RecalculatePositionAsync(walletId, assetId, op);
+    }
+
+    private async Task ProcessNoCashPositionChangeAsync(
+        B3StatementRow row,
+        ProcessImportJobCommand request)
+    {
+        // wallet fixa
+        var walletId = request.WalletId;
+
+        // asset resolve igual ao trade, mas normalizando o ticker
+        var ticker = ExtractTickerNormalized(row.Asset!);
+        if (!LooksLikeEquityTicker(ticker))
+            throw new InvalidOperationException($"Linha {row.RowNumber}: ticker inválido ('{ticker}').");
+
+        // resolve/garante Asset
+        var existing = await _assetRepo.GetByCodeAsync(ticker);
+        Guid assetId;
+        if (existing is not null) assetId = existing.Id;
+        else
+        {
+            var asset = Asset.Create(
+                name: ticker,
+                code: ticker,
+                cnpj: null,
+                exchange: Exchange.B3,
+                currency: Currency.BRL,
+                type: AssetType.Acao,
+                sector: null
+            );
+
+            if (!asset.IsValid)
+                throw new InvalidOperationException(string.Join("; ", asset.Notifications.Select(n => n.Message)));
+
+            await _assetRepo.AddAsync(asset);
+            assetId = asset.Id;
+        }
+
+        if (row.Quantity is null || row.Quantity.Value <= 0)
+            throw new InvalidOperationException($"Linha {row.RowNumber}: Quantity ausente/inválida para ajuste de posição.");
+
+        // aplica delta conforme categoria + ledgerSide
+        decimal delta = row.Quantity.Value;
+
+        // regra simples: Crédito soma, Débito subtrai
+        if (row.LedgerSide == LedgerSide.Debit)
+            delta = -delta;
+
+        // alguns eventos são sempre “crédito” na prática (bonus/split),
+        // mas manter a regra por ledgerSide te protege.
+        await _positionService.ApplyQuantityDeltaNoCashAsync(walletId, assetId, delta, row);
     }
 
     // =========================
@@ -239,4 +345,39 @@ public sealed class ProcessImportJobCommandHandler
 
     private static DateTime EnsureUtc(DateTime dt) =>
         DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+    private static bool LooksLikeFixedIncome(string? asset)
+    {
+        if (string.IsNullOrWhiteSpace(asset)) return false;
+        var a = asset.Trim().ToUpperInvariant();
+
+        // mesma regra do classificador (mínimo necessário)
+        return a.StartsWith("CDB ") || a.StartsWith("CDB -")
+            || a.StartsWith("LCI ") || a.StartsWith("LCI -")
+            || a.StartsWith("LCA ") || a.StartsWith("LCA -")
+            || a.StartsWith("LC ") || a.StartsWith("LC -")
+            || a.StartsWith("CRI ") || a.StartsWith("CRI -")
+            || a.StartsWith("CRA ") || a.StartsWith("CRA -")
+            || a.Contains("DEBENTURE")
+            || a.Contains("TESOURO")
+            || a.Contains("LTN") || a.Contains("LFT") || a.Contains("NTN");
+    }
+
+    private static bool LooksLikeEquityTicker(string? ticker)
+    {
+        if (string.IsNullOrWhiteSpace(ticker)) return false;
+        // AAAA3 / AAAA11 / AAAA3F
+        return Regex.IsMatch(ticker.Trim().ToUpperInvariant(), @"^[A-Z]{4}[0-9]{1,2}F?$");
+    }
+
+    private static string ExtractTickerNormalized(string rawAsset)
+    {
+        var t = ExtractTicker(rawAsset);
+
+        // fracionário AAAA3F -> AAAA3 (posição na B3 geralmente consolida no ativo principal)
+        if (t.EndsWith("F", StringComparison.OrdinalIgnoreCase))
+            t = t[..^1];
+
+        return t;
+    }
 }

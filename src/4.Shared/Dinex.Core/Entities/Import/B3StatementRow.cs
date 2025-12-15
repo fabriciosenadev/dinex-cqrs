@@ -178,5 +178,12 @@
             UpdatedAt = DateTime.UtcNow;
             Status = B3StatementRowStatus.Processando;
         }
+
+        public void MarkAsError(string message)
+        {
+            Status = B3StatementRowStatus.Erro;
+            Error = string.IsNullOrWhiteSpace(message) ? "Erro ao processar trade." : message;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

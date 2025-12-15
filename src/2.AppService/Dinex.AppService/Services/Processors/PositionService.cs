@@ -8,6 +8,8 @@ public interface IPositionService
     /// Se for retroativa, reprocessa tudo.
     /// </summary>
     Task RecalculatePositionAsync(Guid walletId, Guid assetId, Operation? triggeringOperation = null);
+    Task ApplyQuantityDeltaNoCashAsync(Guid walletId, Guid assetId, decimal quantityDelta, B3StatementRow sourceRow);
+
 }
 
 public class PositionService : IPositionService
@@ -146,4 +148,49 @@ public class PositionService : IPositionService
             await _positionRepository.UpdateAsync(positionAny);
         }
     }
+
+    public async Task ApplyQuantityDeltaNoCashAsync(
+        Guid walletId,
+        Guid assetId,
+        decimal quantityDelta,
+        B3StatementRow sourceRow)
+    {
+        var positionAny = await _positionRepository.GetAnyByWalletAndAssetAsync(walletId, assetId);
+
+        // se não existe posição ainda, cria “no cash” com invested = 0.
+        // (isso pode acontecer se você importar eventos fora de ordem / ou faltou trade histórico)
+        if (positionAny is null)
+        {
+            var q = Math.Max(0, quantityDelta);
+            if (q == 0) return;
+
+            var p = Position.Create(walletId, assetId, currentQuantity: q, averagePrice:0, investedValue: 0);
+            await _positionRepository.AddAsync(p);
+            return;
+        }
+
+        // restaura se deletada
+        if (positionAny.DeletedAt != null)
+            positionAny.Restore();
+
+        var newQty = positionAny.CurrentQuantity + quantityDelta;
+        if (newQty < 0) newQty = 0;
+
+        // invested não muda em eventos sem caixa
+        var invested = positionAny.InvestedValue;
+
+        // avgPrice ajusta automaticamente para manter invested constante
+        var avg = newQty > 0 ? invested / newQty : 0;
+
+        if (newQty == 0)
+        {
+            positionAny.MarkAsDeleted();
+            await _positionRepository.UpdateAsync(positionAny);
+            return;
+        }
+
+        positionAny.Update(newQty, avg, invested);
+        await _positionRepository.UpdateAsync(positionAny);
+    }
+
 }
